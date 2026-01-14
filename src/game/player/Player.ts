@@ -8,6 +8,9 @@ export class Player {
   pos = new Vec2(140, 360);
   vel = new Vec2(0, 0);
 
+  // last movement direction (used for rendering facing)
+  facing = new Vec2(1, 0);
+
   // collision box centered on pos
   half = new Vec2(14, 18);
 
@@ -42,6 +45,11 @@ export class Player {
     const dir = this.tmpDir.set(ax, ay);
     const moving = dir.lenSq() > 0;
     if (moving) dir.normalize();
+
+    // Facing is left/right only (horizontal flip) even though movement supports up/down.
+    if (ax !== 0) {
+      this.facing.set(ax > 0 ? 1 : -1, 0);
+    }
 
     const speed = 240;
     this.vel.copy(dir).scale(speed);

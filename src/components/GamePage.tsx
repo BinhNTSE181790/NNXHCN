@@ -9,6 +9,7 @@ import { HelpModal } from "@/components/HelpModal";
 import { PauseOverlay } from "@/components/PauseOverlay";
 import { QuizModal } from "@/components/QuizModal";
 import { FlipbookModal } from "@/components/FlipbookModal";
+import { FrameModal } from "@/components/FrameModal";
 
 import { AudioSystem } from "@/game/audio/Audio";
 import {
@@ -22,6 +23,7 @@ import {
 import { QUIZ_QUESTIONS, type QuizId } from "@/data/questions";
 
 type ActiveQuiz = { quizId: QuizId; title: string; openId: number } | null;
+type ActiveFrame = { frameId: string; title: string; openId: number } | null;
 
 function fmtMs(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -30,16 +32,37 @@ function fmtMs(ms: number) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-async function postScore(payload: Record<string, unknown>) {
-  const url = process.env.NEXT_PUBLIC_SHEETS_ENDPOINT;
-  if (!url) return;
+async function postScore(payload: Record<string, unknown>, debug = false) {
   try {
-    await fetch(url, {
+    if (debug) console.log("[score] POST /api/score payload", payload);
+
+    const res = await fetch("/api/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
       keepalive: true,
     });
+
+    // Best-effort logging: only warn if proxy reports failure.
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn("[score] POST /api/score failed", { status: res.status, body: text, payload });
+      return;
+    }
+
+    const json = (await res.json().catch(() => null)) as null | {
+      ok?: boolean;
+      status?: number;
+      requestId?: string;
+      elapsedMs?: number;
+      body?: string;
+    };
+
+    if (json && json.ok === false) {
+      console.warn("[score] Upstream webhook returned ok=false", json);
+    } else if (debug) {
+      console.log("[score] POST /api/score ok", json ?? { ok: true });
+    }
   } catch {
     // best-effort
   }
@@ -48,6 +71,14 @@ async function postScore(payload: Record<string, unknown>) {
 export function GamePage() {
   const gameRef = useRef<GameCanvasHandle>(null);
   const audio = useMemo(() => new AudioSystem(), []);
+
+  const [debugSkipQuiz, setDebugSkipQuiz] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem("btls_debug_skip_quiz") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const [started, setStarted] = useState(false);
   const [save, setSave] = useState<SaveStateV1 | null>(() => loadSave());
@@ -58,6 +89,7 @@ export function GamePage() {
 
   const [activeQuiz, setActiveQuiz] = useState<ActiveQuiz>(null);
   const [activeFlipbookId, setActiveFlipbookId] = useState<string | null>(null);
+  const [activeFrame, setActiveFrame] = useState<ActiveFrame>(null);
 
   const [endgame, setEndgame] = useState(false);
 
@@ -112,40 +144,6 @@ export function GamePage() {
     [ensureAudio],
   );
 
-  const callbacks = useMemo(
-    () => ({
-      onRequestFlipbook: (flipbookId: string, _title: string) => {
-        void _title;
-        setActiveFlipbookId(flipbookId);
-      },
-      onRequestQuiz: (quizId: QuizId, title: string) => {
-        setActiveQuiz({ quizId, title, openId: Date.now() });
-      },
-      onTogglePause: (p: boolean) => {
-        setPaused(p);
-        if (p) audio.suspend();
-        else audio.resume();
-      },
-      onSfxMoveStep: () => audio.playMoveStep(),
-      onSfxInteract: () => audio.playInteract(),
-      onSfxDoor: () => audio.playDoor(),
-    }),
-    [audio],
-  );
-
-  useEffect(() => {
-    const shouldPause = paused || showHelp || !!activeQuiz || !!activeFlipbookId || endgame;
-    gameRef.current?.setPaused(shouldPause);
-  }, [paused, showHelp, activeQuiz, activeFlipbookId, endgame]);
-
-  const closeFlipbook = useCallback(() => {
-    setActiveFlipbookId(null);
-  }, []);
-
-  const closeQuiz = useCallback(() => {
-    setActiveQuiz(null);
-  }, []);
-
   const onQuizComplete = useCallback(
     async (res: { quizId: QuizId; totalTimeMs: number; attempts: number }) => {
       if (!save) {
@@ -185,7 +183,7 @@ export function GamePage() {
             sideTotalTimeMs: next.score.sideTotalTimeMs,
             sideAttempts: next.score.sideAttempts,
             at: new Date().toISOString(),
-          });
+          }, debugSkipQuiz);
         }
       } else {
         gameRef.current?.burstCelebration();
@@ -198,7 +196,7 @@ export function GamePage() {
           mainTotalTimeMs: next.score.mainTotalTimeMs,
           mainAttempts: next.score.mainAttempts,
           at: new Date().toISOString(),
-        });
+        }, debugSkipQuiz);
       }
 
       writeSave(next);
@@ -208,11 +206,93 @@ export function GamePage() {
     [save, syncSaveFromGame],
   );
 
+  const callbacks = useMemo(
+    () => ({
+      onRequestFlipbook: (flipbookId: string, _title: string) => {
+        void _title;
+        setActiveFlipbookId(flipbookId);
+      },
+      onRequestQuiz: (quizId: QuizId, title: string) => {
+        if (debugSkipQuiz) {
+          // Debug shortcut: auto-complete quiz without showing the modal.
+          void onQuizComplete({ quizId, totalTimeMs: 0, attempts: 0 });
+          return;
+        }
+        setActiveQuiz({ quizId, title, openId: Date.now() });
+      },
+      onRequestFrame: (frameId: string, title: string) => {
+        setActiveFrame({ frameId, title, openId: Date.now() });
+      },
+      onTogglePause: (p: boolean) => {
+        setPaused(p);
+        if (p) audio.suspend();
+        else audio.resume();
+      },
+      onSfxMoveStep: () => audio.playMoveStep(),
+      onSfxInteract: () => audio.playInteract(),
+      onSfxDoor: () => audio.playDoor(),
+    }),
+    [audio, debugSkipQuiz, onQuizComplete],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Hidden trigger: Ctrl + Alt + D
+      if (e.ctrlKey && e.altKey && e.code === "KeyD") {
+        e.preventDefault();
+        setDebugSkipQuiz((prev) => {
+          const next = !prev;
+          try {
+            window.localStorage.setItem("btls_debug_skip_quiz", next ? "1" : "0");
+          } catch {
+            // ignore
+          }
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const shouldPause = paused || showHelp || !!activeQuiz || !!activeFlipbookId || !!activeFrame || endgame;
+    gameRef.current?.setPaused(shouldPause);
+  }, [paused, showHelp, activeQuiz, activeFlipbookId, activeFrame, endgame]);
+
+  const closeFlipbook = useCallback(() => {
+    setActiveFlipbookId(null);
+  }, []);
+
+  const closeFrame = useCallback(() => {
+    setActiveFrame(null);
+  }, []);
+
+  const closeQuiz = useCallback(() => {
+    setActiveQuiz(null);
+  }, []);
+
   const onResume = useCallback(() => {
     setPaused(false);
     gameRef.current?.setHardPaused(false);
     audio.resume();
   }, [audio]);
+
+  const onBackToPreviousMap = useCallback(() => {
+    if (!save) return;
+    if (save.mapId <= 1) return;
+
+    gameRef.current?.retreatMap();
+    const next = syncSaveFromGame(save);
+    writeSave(next);
+    setSave(next);
+    setSaveExists(true);
+
+    // Resume after jumping back.
+    setPaused(false);
+    gameRef.current?.setHardPaused(false);
+    audio.resume();
+  }, [audio, save, syncSaveFromGame]);
 
   const onShowHelp = useCallback(() => {
     setShowHelp(true);
@@ -248,8 +328,10 @@ export function GamePage() {
         {started ? <GameCanvas ref={gameRef} initial={initial} callbacks={callbacks} /> : null}
       </div>
 
+      {debugSkipQuiz ? <div className={styles.debugBadge}>DEBUG: Skip quiz</div> : null}
+
       <StartOverlay
-        key={`${saveExists}-${save?.playerName ?? ""}`}
+        key={`${saveExists ? "1" : "0"}-${save?.playerName ?? ""}`}
         visible={!started}
         hasSave={saveExists}
         defaultName={save?.playerName ?? ""}
@@ -265,6 +347,8 @@ export function GamePage() {
         onChangeVolume={(v) => {
           audio.setVolume(v);
         }}
+        canBack={(save?.mapId ?? initial.mapId) > 1}
+        onBack={onBackToPreviousMap}
         onResume={onResume}
         onShowHelp={onShowHelp}
       />
@@ -275,6 +359,16 @@ export function GamePage() {
         flipbookId={activeFlipbookId ?? ""}
         onClose={closeFlipbook}
       />
+
+      {activeFrame ? (
+        <FrameModal
+          key={activeFrame.openId}
+          visible={true}
+          frameId={activeFrame.frameId}
+          title={activeFrame.title}
+          onClose={closeFrame}
+        />
+      ) : null}
 
       {activeQuiz ? (
         <QuizModal
@@ -320,7 +414,7 @@ export function GamePage() {
 
             {!process.env.NEXT_PUBLIC_SHEETS_ENDPOINT ? (
               <div className={styles.endMuted}>
-                (Chưa cấu hình Google Sheet webhook: đặt env `NEXT_PUBLIC_SHEETS_ENDPOINT` nếu cần thống kê.)
+                (Chưa cấu hình Google Sheet webhook: đặt env `SHEETS_ENDPOINT` (khuyến nghị) hoặc `NEXT_PUBLIC_SHEETS_ENDPOINT`.)
               </div>
             ) : null}
           </div>

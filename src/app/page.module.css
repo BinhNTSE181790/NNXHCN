@@ -10,6 +10,20 @@
   inset: 0;
 }
 
+.debugBadge {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(216, 192, 138, 0.35);
+  color: #f8fafc;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+}
+
 .endWrap {
   position: fixed;
   inset: 0;

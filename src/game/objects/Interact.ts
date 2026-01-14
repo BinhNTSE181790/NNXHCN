@@ -2,7 +2,7 @@
 import type { QuizId } from "@/data/questions";
 import { Rect } from "@/game/util/Rect";
 
-export type InteractType = "exhibit" | "door" | "stage";
+export type InteractType = "exhibit" | "door" | "stage" | "frame";
 
 export type Interactable = {
   id: string;
