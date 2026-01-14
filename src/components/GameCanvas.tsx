@@ -14,6 +14,7 @@ export type GameCanvasHandle = {
   getState: () => { mapId: MapId; px: number; py: number };
   setState: (mapId: MapId, px: number, py: number) => void;
   advanceMap: () => void;
+  retreatMap: () => void;
   burstCelebration: () => void;
 };
 
@@ -22,6 +23,7 @@ export type GameCanvasProps = {
   callbacks: {
     onRequestFlipbook: (flipbookId: string, title: string) => void;
     onRequestQuiz: (quizId: QuizId, title: string) => void;
+    onRequestFrame: (frameId: string, title: string) => void;
     onTogglePause: (paused: boolean) => void;
     onSfxMoveStep: () => void;
     onSfxInteract: () => void;
@@ -46,6 +48,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(function
       getState: () => gameRef.current?.getState() ?? initial,
       setState: (mapId, px, py) => gameRef.current?.setState(mapId, px, py),
       advanceMap: () => gameRef.current?.advanceMap(),
+      retreatMap: () => gameRef.current?.retreatMap(),
       burstCelebration: () => gameRef.current?.burstCelebration(),
     }),
     [initial],

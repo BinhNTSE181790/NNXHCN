@@ -51,7 +51,8 @@ export class AudioSystem {
     this.masterGain.connect(this.ctx.destination);
 
     this.applyVolumes();
-    this.startMusic();
+    // Background music disabled by default (per project requirement).
+    // Keep the graph ready for SFX and allow music to be re-enabled later if desired.
   }
 
   async suspend() {

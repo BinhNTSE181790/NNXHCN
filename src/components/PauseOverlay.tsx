@@ -18,6 +18,8 @@ export function PauseOverlay(props: {
   volume: VolumeState;
   score: ScoreState;
   onChangeVolume: (v: Partial<VolumeState>) => void;
+  canBack: boolean;
+  onBack: () => void;
   onResume: () => void;
   onShowHelp: () => void;
 }) {
@@ -93,6 +95,11 @@ export function PauseOverlay(props: {
             <button className={styles.btn} onClick={props.onShowHelp}>
               Xem hướng dẫn
             </button>
+            {props.canBack ? (
+              <button className={styles.btn} onClick={props.onBack}>
+                Quay lại màn trước
+              </button>
+            ) : null}
             <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={props.onResume}>
               Tiếp tục
             </button>
