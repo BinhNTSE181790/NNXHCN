@@ -46,8 +46,9 @@ export class Player {
     const moving = dir.lenSq() > 0;
     if (moving) dir.normalize();
 
-    if (moving) {
-      this.facing.copy(dir);
+    // Facing is left/right only (horizontal flip) even though movement supports up/down.
+    if (ax !== 0) {
+      this.facing.set(ax > 0 ? 1 : -1, 0);
     }
 
     const speed = 240;

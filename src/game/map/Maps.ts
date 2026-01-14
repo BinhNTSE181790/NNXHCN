@@ -5,7 +5,7 @@ import { Rect } from "@/game/util/Rect";
 import type { Interactable } from "@/game/objects/Interact";
 import type { MapId } from "@/game/save/SaveLoad";
 
-export type WallFrame = { x: number; y: number; w: number; h: number; title: string };
+export type WallFrame = { id: string; x: number; y: number; w: number; h: number; title: string };
 
 export type MapDef = {
   id: MapId;
@@ -49,6 +49,16 @@ function doorOrStage(
     title,
     hint: "Nhấn E để làm quiz",
     quizId,
+  };
+}
+
+function frameInteractable(id: string, f: WallFrame): Interactable {
+  return {
+    id,
+    type: "frame",
+    rect: new Rect(f.x, f.y, f.w, f.h),
+    title: f.title,
+    hint: "Nhấn E để phóng to khung hình",
   };
 }
 
@@ -124,9 +134,15 @@ export function buildMaps(): Record<MapId, MapDef> {
   addObstacle(map3Obstacles, new Rect(m3Stage.rect.x, m3Stage.rect.y, m3Stage.rect.w, m3Stage.rect.h));
 
   const wallFrames: WallFrame[] = [
-    { x: 720, y: 90, w: 420, h: 190, title: "Khung 1: Dân chủ XHCN" },
-    { x: 1320, y: 90, w: 420, h: 190, title: "Khung 2: Nhà nước pháp quyền" },
+    { id: "m3-f1", x: 720, y: 90, w: 420, h: 190, title: "Khung 1: Dân chủ XHCN" },
+    { id: "m3-f2", x: 1320, y: 90, w: 420, h: 190, title: "Khung 2: Nhà nước pháp quyền" },
   ];
+
+  // Frames behave like objects: collision + interact popup
+  const m3Frames = wallFrames.map((f) => frameInteractable(f.id, f));
+  for (const f of wallFrames) {
+    addObstacle(map3Obstacles, new Rect(f.x - 8, f.y - 8, f.w + 16, f.h + 16));
+  }
 
   return {
     1: {
@@ -153,7 +169,7 @@ export function buildMaps(): Record<MapId, MapDef> {
       width: W,
       height: H,
       obstacles: map3Obstacles,
-      interactables: [...m3Exhibits, m3Stage],
+      interactables: [...m3Exhibits, ...m3Frames, m3Stage],
       wallFrames,
     },
   };

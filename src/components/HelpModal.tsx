@@ -23,6 +23,7 @@ export function HelpModal(props: { visible: boolean; onClose: () => void }) {
             - Di chuyển tự do quanh bảo tàng, đọc nội dung ở các bục trưng bày (flipbook).
             <br />- Đi tới cửa (màn 1, 2) hoặc sân khấu (màn 3) để làm quiz.
             <br />- Quiz: đúng toàn bộ mới qua màn; sai bất kỳ câu nào sẽ phải làm lại từ đầu (đảo lại thứ tự).
+            <br />- Trong Pause có nút <b>Quay lại màn trước</b> để quay về màn đã vượt qua (chỉ quay lại, không có nút nhảy lên màn sau).
           </div>
 
           <div>
@@ -31,7 +32,7 @@ export function HelpModal(props: { visible: boolean; onClose: () => void }) {
           </div>
 
           <div className={styles.muted}>
-            Mẹo: Bật âm thanh bằng cách bấm Start (AudioContext chỉ tạo sau thao tác của bạn).
+            Mẹo: Âm thanh (SFX) chỉ hoạt động sau khi bạn bấm Start (AudioContext chỉ tạo sau thao tác của bạn).
           </div>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { HelpModal } from "@/components/HelpModal";
 import { PauseOverlay } from "@/components/PauseOverlay";
 import { QuizModal } from "@/components/QuizModal";
 import { FlipbookModal } from "@/components/FlipbookModal";
+import { FrameModal } from "@/components/FrameModal";
 
 import { AudioSystem } from "@/game/audio/Audio";
 import {
@@ -22,6 +23,7 @@ import {
 import { QUIZ_QUESTIONS, type QuizId } from "@/data/questions";
 
 type ActiveQuiz = { quizId: QuizId; title: string; openId: number } | null;
+type ActiveFrame = { frameId: string; title: string; openId: number } | null;
 
 function fmtMs(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -36,7 +38,10 @@ async function postScore(payload: Record<string, unknown>) {
   try {
     await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      // Apps Script Web App doesn't reliably support setting CORS headers.
+      // Use a simple request + no-cors to avoid preflight; logging is best-effort.
+      mode: "no-cors",
+      headers: { "content-type": "text/plain;charset=UTF-8" },
       body: JSON.stringify(payload),
       keepalive: true,
     });
@@ -66,6 +71,7 @@ export function GamePage() {
 
   const [activeQuiz, setActiveQuiz] = useState<ActiveQuiz>(null);
   const [activeFlipbookId, setActiveFlipbookId] = useState<string | null>(null);
+  const [activeFrame, setActiveFrame] = useState<ActiveFrame>(null);
 
   const [endgame, setEndgame] = useState(false);
 
@@ -196,6 +202,9 @@ export function GamePage() {
         }
         setActiveQuiz({ quizId, title, openId: Date.now() });
       },
+      onRequestFrame: (frameId: string, title: string) => {
+        setActiveFrame({ frameId, title, openId: Date.now() });
+      },
       onTogglePause: (p: boolean) => {
         setPaused(p);
         if (p) audio.suspend();
@@ -229,12 +238,16 @@ export function GamePage() {
   }, []);
 
   useEffect(() => {
-    const shouldPause = paused || showHelp || !!activeQuiz || !!activeFlipbookId || endgame;
+    const shouldPause = paused || showHelp || !!activeQuiz || !!activeFlipbookId || !!activeFrame || endgame;
     gameRef.current?.setPaused(shouldPause);
-  }, [paused, showHelp, activeQuiz, activeFlipbookId, endgame]);
+  }, [paused, showHelp, activeQuiz, activeFlipbookId, activeFrame, endgame]);
 
   const closeFlipbook = useCallback(() => {
     setActiveFlipbookId(null);
+  }, []);
+
+  const closeFrame = useCallback(() => {
+    setActiveFrame(null);
   }, []);
 
   const closeQuiz = useCallback(() => {
@@ -246,6 +259,22 @@ export function GamePage() {
     gameRef.current?.setHardPaused(false);
     audio.resume();
   }, [audio]);
+
+  const onBackToPreviousMap = useCallback(() => {
+    if (!save) return;
+    if (save.mapId <= 1) return;
+
+    gameRef.current?.retreatMap();
+    const next = syncSaveFromGame(save);
+    writeSave(next);
+    setSave(next);
+    setSaveExists(true);
+
+    // Resume after jumping back.
+    setPaused(false);
+    gameRef.current?.setHardPaused(false);
+    audio.resume();
+  }, [audio, save, syncSaveFromGame]);
 
   const onShowHelp = useCallback(() => {
     setShowHelp(true);
@@ -300,6 +329,8 @@ export function GamePage() {
         onChangeVolume={(v) => {
           audio.setVolume(v);
         }}
+        canBack={(save?.mapId ?? initial.mapId) > 1}
+        onBack={onBackToPreviousMap}
         onResume={onResume}
         onShowHelp={onShowHelp}
       />
@@ -310,6 +341,16 @@ export function GamePage() {
         flipbookId={activeFlipbookId ?? ""}
         onClose={closeFlipbook}
       />
+
+      {activeFrame ? (
+        <FrameModal
+          key={activeFrame.openId}
+          visible={true}
+          frameId={activeFrame.frameId}
+          title={activeFrame.title}
+          onClose={closeFrame}
+        />
+      ) : null}
 
       {activeQuiz ? (
         <QuizModal

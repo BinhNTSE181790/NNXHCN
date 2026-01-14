@@ -12,6 +12,7 @@ import { ConfettiSystem } from "@/game/vfx/Confetti";
 export type GameCallbacks = {
   onRequestFlipbook: (flipbookId: string, title: string) => void;
   onRequestQuiz: (quizId: QuizId, title: string) => void;
+  onRequestFrame: (frameId: string, title: string) => void;
   onTogglePause: (paused: boolean) => void;
   onSfxMoveStep: () => void;
   onSfxInteract: () => void;
@@ -168,6 +169,21 @@ export class Game {
     }
   }
 
+  retreatMap() {
+    // Only allow going back to already-cleared maps.
+    if (this.mapId === 2) {
+      this.mapId = 1;
+    } else if (this.mapId === 3) {
+      this.mapId = 2;
+    } else {
+      return;
+    }
+
+    const map = this.maps[this.mapId];
+    // Spawn near the right edge (but not inside the door/stage obstacle).
+    this.player.setSpawn(map.width - 260, map.height * 0.5);
+  }
+
   burstCelebration() {
     this.confetti.burst(this.player.pos.x + 90, this.player.pos.y - 60, 140);
   }
@@ -209,6 +225,10 @@ export class Game {
       if ((this.nearest.type === "door" || this.nearest.type === "stage") && this.nearest.quizId) {
         this.callbacks.onSfxDoor();
         this.callbacks.onRequestQuiz(this.nearest.quizId, this.nearest.title);
+      }
+      if (this.nearest.type === "frame") {
+        this.callbacks.onSfxInteract();
+        this.callbacks.onRequestFrame(this.nearest.id, this.nearest.title);
       }
     }
 
@@ -324,18 +344,22 @@ export class Game {
     const wallTopH = this.WALL_TOP_H;
     const wallBotH = this.WALL_BOTTOM_H;
     const floorY0 = wallTopH;
-    const floorY1 = map.height - wallBotH;
+    // If viewport is taller than the map (e.g. portrait screens), push the bottom wall
+    // down to the visible bottom so it doesn't appear "floating" above the screen edge.
+    const visibleBottomY = this.camY + this.viewH;
+    const bottomWallY = Math.max(map.height - wallBotH, visibleBottomY - wallBotH);
+    const floorY1 = bottomWallY;
 
     // walls (be / xám nhạt)
     ctx.fillStyle = "#e7e1d6";
     ctx.fillRect(0, 0, map.width, wallTopH);
     ctx.fillStyle = "#e7e1d6";
-    ctx.fillRect(0, map.height - wallBotH, map.width, wallBotH);
+    ctx.fillRect(0, bottomWallY, map.width, wallBotH);
 
     // wall shadows
     ctx.fillStyle = "rgba(0,0,0,0.06)";
     ctx.fillRect(0, wallTopH - 10, map.width, 10);
-    ctx.fillRect(0, map.height - wallBotH, map.width, 10);
+    ctx.fillRect(0, bottomWallY, map.width, 10);
 
     // floor (đá sáng)
     ctx.fillStyle = "#d9dee7";
@@ -382,14 +406,18 @@ export class Game {
 
     // map3 wall frames
     if (map.wallFrames.length) {
+      const time = nowMs() / 1000;
       for (const f of map.wallFrames) {
+        const isNear = this.nearest?.id === f.id;
+        const pulse = isNear ? 0.5 + 0.5 * Math.sin(time * 6.0) : 0;
+
         // keep the two large frames readable (not covered by exhibits)
         ctx.fillStyle = "rgba(0,0,0,0.08)";
         ctx.fillRect(f.x - 10, f.y - 8, f.w + 20, f.h + 26);
         ctx.fillStyle = "#1f2937";
         ctx.fillRect(f.x, f.y, f.w, f.h);
-        ctx.strokeStyle = "#d8c08a";
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = isNear ? `rgba(216,192,138,${0.55 + pulse * 0.25})` : "#d8c08a";
+        ctx.lineWidth = isNear ? 5 : 4;
         ctx.strokeRect(f.x, f.y, f.w, f.h);
 
         // inner abstract
@@ -738,9 +766,7 @@ export class Game {
     const x = this.player.pos.x;
     const y = this.player.pos.y;
 
-    const fx = this.player.facing.x;
-    const fy = this.player.facing.y;
-    const a = Math.atan2(fy, fx);
+    const flipX = this.player.facing.x < 0 ? -1 : 1;
 
     // shadow
     ctx.globalAlpha = 0.25;
@@ -750,10 +776,10 @@ export class Game {
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // rotate whole character by facing
+    // flip whole character by facing (left/right only)
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(a);
+    ctx.scale(flipX, 1);
 
     // body capsule (top-down)
     const bodyL = 24;
