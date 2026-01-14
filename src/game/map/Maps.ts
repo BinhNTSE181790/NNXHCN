@@ -1,0 +1,158 @@
+//Map
+import type { QuizId } from "@/data/questions";
+import type { FlipbookId } from "@/data/flipbooks";
+import { Rect } from "@/game/util/Rect";
+import type { Interactable } from "@/game/objects/Interact";
+import type { MapId } from "@/game/save/SaveLoad";
+
+export type WallFrame = { x: number; y: number; w: number; h: number; title: string };
+
+export type MapDef = {
+  id: MapId;
+  title: string;
+  width: number;
+  height: number;
+  obstacles: Rect[];
+  interactables: Interactable[];
+  wallFrames: WallFrame[];
+};
+
+function exhibit(
+  id: string,
+  x: number,
+  y: number,
+  title: string,
+  flipbookId: FlipbookId,
+): Interactable {
+  return {
+    id,
+    type: "exhibit",
+    rect: new Rect(x, y, 86, 66),
+    title,
+    hint: "Nhấn E để xem flipbook",
+    flipbookId,
+  };
+}
+
+function doorOrStage(
+  id: string,
+  type: "door" | "stage",
+  x: number,
+  y: number,
+  title: string,
+  quizId: QuizId,
+): Interactable {
+  return {
+    id,
+    type,
+    rect: new Rect(x, y, 90, 140),
+    title,
+    hint: "Nhấn E để làm quiz",
+    quizId,
+  };
+}
+
+export function buildMaps(): Record<MapId, MapDef> {
+  const W = 2400;
+  const H = 720;
+
+  // Keep consistent with the renderer wall bands in Game.ts
+  const WALL_TOP_H = 110;
+  const WALL_BOTTOM_H = 96;
+
+  const map1Obstacles: Rect[] = [];
+  const map2Obstacles: Rect[] = [];
+  const map3Obstacles: Rect[] = [];
+
+  const addObstacle = (arr: Rect[], r: Rect) => arr.push(r);
+
+  const addWallObstacles = (arr: Rect[]) => {
+    addObstacle(arr, new Rect(0, 0, W, WALL_TOP_H));
+    addObstacle(arr, new Rect(0, H - WALL_BOTTOM_H, W, WALL_BOTTOM_H));
+  };
+
+  addWallObstacles(map1Obstacles);
+  addWallObstacles(map2Obstacles);
+  addWallObstacles(map3Obstacles);
+
+  // Pedestals as obstacles (slightly larger than interact rect)
+  const pedestalObstacle = (x: number, y: number) => new Rect(x - 6, y - 6, 98, 78);
+
+  // Map 1 exhibits
+  const m1Exhibits: Interactable[] = [
+    exhibit("m1-e1", 520, 220, "Quyền lực thuộc về nhân dân", "m1-trung-tam-quyen-luc"),
+    exhibit("m1-e2", 980, 500, "Chức năng nhà nước", "m1-chuc-nang"),
+    exhibit("m1-e3", 1400, 220, "Pháp luật và thượng tôn", "m1-phap-luat"),
+    exhibit("m1-e4", 1780, 500, "Tổ chức bộ máy", "m1-to-chuc"),
+  ];
+  for (const it of m1Exhibits) addObstacle(map1Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
+
+  const m1Door = doorOrStage("m1-door", "door", W - 170, H / 2 - 70, "Cửa qua màn 2", "map1");
+  addObstacle(map1Obstacles, new Rect(m1Door.rect.x, m1Door.rect.y, m1Door.rect.w, m1Door.rect.h));
+
+  // Map 2 exhibits
+  const m2Exhibits: Interactable[] = [
+    exhibit("m2-e1", 520, 500, "Dân chủ xã hội chủ nghĩa", "m2-dan-chu"),
+    exhibit("m2-e2", 980, 220, "Nhà nước pháp quyền XHCN", "m2-phap-quyen"),
+    exhibit("m2-e3", 1400, 500, "Kiểm soát quyền lực", "m2-kiem-soat"),
+    exhibit("m2-e4", 1780, 220, "Nhân dân tham gia quản lý", "m2-tham-gia"),
+  ];
+  for (const it of m2Exhibits) addObstacle(map2Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
+
+  const m2Door = doorOrStage("m2-door", "door", W - 170, H / 2 - 70, "Cửa qua màn 3", "map2");
+  addObstacle(map2Obstacles, new Rect(m2Door.rect.x, m2Door.rect.y, m2Door.rect.w, m2Door.rect.h));
+
+  // Map 3 exhibits (avoid top wall frames)
+  const m3Exhibits: Interactable[] = [
+    exhibit("m3-e1", 520, 520, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e2", 980, 520, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e3", 1400, 520, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e4", 1780, 520, "Ôn tập nhanh", "m3-tong-ket"),
+  ];
+  for (const it of m3Exhibits) addObstacle(map3Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
+
+  const m3Stage = doorOrStage(
+    "m3-stage",
+    "stage",
+    W - 220,
+    H / 2 - 90,
+    "Sân khấu tổng kết",
+    "final",
+  );
+  addObstacle(map3Obstacles, new Rect(m3Stage.rect.x, m3Stage.rect.y, m3Stage.rect.w, m3Stage.rect.h));
+
+  const wallFrames: WallFrame[] = [
+    { x: 720, y: 90, w: 420, h: 190, title: "Khung 1: Dân chủ XHCN" },
+    { x: 1320, y: 90, w: 420, h: 190, title: "Khung 2: Nhà nước pháp quyền" },
+  ];
+
+  return {
+    1: {
+      id: 1,
+      title: "Màn 1: Nhà nước xã hội chủ nghĩa",
+      width: W,
+      height: H,
+      obstacles: map1Obstacles,
+      interactables: [...m1Exhibits, m1Door],
+      wallFrames: [],
+    },
+    2: {
+      id: 2,
+      title: "Màn 2: Dân chủ XHCN và nhà nước pháp quyền XHCN ở Việt Nam",
+      width: W,
+      height: H,
+      obstacles: map2Obstacles,
+      interactables: [...m2Exhibits, m2Door],
+      wallFrames: [],
+    },
+    3: {
+      id: 3,
+      title: "Màn 3: Phòng tổng kết",
+      width: W,
+      height: H,
+      obstacles: map3Obstacles,
+      interactables: [...m3Exhibits, m3Stage],
+      wallFrames,
+    },
+  };
+}
