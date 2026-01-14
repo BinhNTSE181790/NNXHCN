@@ -87,7 +87,8 @@ export function buildMaps(): Record<MapId, MapDef> {
   ];
   for (const it of m1Exhibits) addObstacle(map1Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
-  const m1Door = doorOrStage("m1-door", "door", W - 170, H / 2 - 70, "Cửa qua màn 2", "map1");
+  // Door frame draws at x-6..x+w+6; keep fully inside the map.
+  const m1Door = doorOrStage("m1-door", "door", W - 96, H / 2 - 70, "Cửa qua màn 2", "map1");
   addObstacle(map1Obstacles, new Rect(m1Door.rect.x, m1Door.rect.y, m1Door.rect.w, m1Door.rect.h));
 
   // Map 2 exhibits
@@ -99,7 +100,7 @@ export function buildMaps(): Record<MapId, MapDef> {
   ];
   for (const it of m2Exhibits) addObstacle(map2Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
-  const m2Door = doorOrStage("m2-door", "door", W - 170, H / 2 - 70, "Cửa qua màn 3", "map2");
+  const m2Door = doorOrStage("m2-door", "door", W - 96, H / 2 - 70, "Cửa qua màn 3", "map2");
   addObstacle(map2Obstacles, new Rect(m2Door.rect.x, m2Door.rect.y, m2Door.rect.w, m2Door.rect.h));
 
   // Map 3 exhibits (avoid top wall frames)
@@ -114,7 +115,8 @@ export function buildMaps(): Record<MapId, MapDef> {
   const m3Stage = doorOrStage(
     "m3-stage",
     "stage",
-    W - 220,
+    // Stage base draws at x-38..x+w+38; keep fully inside the map.
+    W - 128,
     H / 2 - 90,
     "Sân khấu tổng kết",
     "final",

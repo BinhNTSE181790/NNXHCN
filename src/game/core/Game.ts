@@ -258,9 +258,9 @@ export class Game {
     ctx.setTransform(s, 0, 0, s, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
-    // background base (outside map)
-    ctx.fillStyle = "#0b1020";
-    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    // Screen-space backdrop to ensure the whole viewport is filled
+    // even when the map is smaller than the viewport.
+    this.drawScreenBackdrop(ctx);
 
     ctx.save();
     ctx.translate(-this.camX, -this.camY);
@@ -276,6 +276,31 @@ export class Game {
     this.drawVignette(ctx);
 
     this.drawHUD(ctx);
+  }
+
+  private drawScreenBackdrop(ctx: CanvasRenderingContext2D) {
+    // base floor tone
+    ctx.fillStyle = "#d9dee7";
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+    // subtle tile grid
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = "#c5cbd6";
+    ctx.lineWidth = 1;
+    const step = 56;
+    for (let x = 0; x <= this.viewW; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, this.viewH);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= this.viewH; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(this.viewW, y + 0.5);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
 
   private drawVignette(ctx: CanvasRenderingContext2D) {
@@ -713,6 +738,10 @@ export class Game {
     const x = this.player.pos.x;
     const y = this.player.pos.y;
 
+    const fx = this.player.facing.x;
+    const fy = this.player.facing.y;
+    const a = Math.atan2(fy, fx);
+
     // shadow
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = "#000";
@@ -721,15 +750,51 @@ export class Game {
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // body (neutral, academic)
-    ctx.fillStyle = "#2563eb";
+    // rotate whole character by facing
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+
+    // body capsule (top-down)
+    const bodyL = 24;
+    const bodyW = 18;
+    const r = bodyW * 0.5;
+
+    // outline
+    ctx.fillStyle = "rgba(15,23,42,0.35)";
     ctx.beginPath();
-    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.roundRect(-bodyL * 0.5 - 1.5, -bodyW * 0.5 - 1.5, bodyL + 3, bodyW + 3, r + 2);
     ctx.fill();
 
-    // face marker
+    // fill
+    ctx.fillStyle = "#2563eb";
+    ctx.beginPath();
+    ctx.roundRect(-bodyL * 0.5, -bodyW * 0.5, bodyL, bodyW, r);
+    ctx.fill();
+
+    // subtle highlight stripe
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.roundRect(-bodyL * 0.18, -bodyW * 0.35, bodyL * 0.22, bodyW * 0.7, 6);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // direction indicator ("face")
     ctx.fillStyle = "#0f172a";
-    ctx.fillRect(x + 4, y - 4, 5, 5);
+    ctx.beginPath();
+    ctx.arc(bodyL * 0.33, 0, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // small backpack / accent
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = "#1e293b";
+    ctx.beginPath();
+    ctx.roundRect(-bodyL * 0.42, -5.5, 7.5, 11, 4);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
   }
 
   private drawHUD(ctx: CanvasRenderingContext2D) {

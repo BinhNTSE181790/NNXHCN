@@ -49,6 +49,14 @@ export function GamePage() {
   const gameRef = useRef<GameCanvasHandle>(null);
   const audio = useMemo(() => new AudioSystem(), []);
 
+  const [debugSkipQuiz, setDebugSkipQuiz] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem("btls_debug_skip_quiz") === "1";
+    } catch {
+      return false;
+    }
+  });
+
   const [started, setStarted] = useState(false);
   const [save, setSave] = useState<SaveStateV1 | null>(() => loadSave());
   const [saveExists, setSaveExists] = useState(() => hasSave());
@@ -112,40 +120,6 @@ export function GamePage() {
     [ensureAudio],
   );
 
-  const callbacks = useMemo(
-    () => ({
-      onRequestFlipbook: (flipbookId: string, _title: string) => {
-        void _title;
-        setActiveFlipbookId(flipbookId);
-      },
-      onRequestQuiz: (quizId: QuizId, title: string) => {
-        setActiveQuiz({ quizId, title, openId: Date.now() });
-      },
-      onTogglePause: (p: boolean) => {
-        setPaused(p);
-        if (p) audio.suspend();
-        else audio.resume();
-      },
-      onSfxMoveStep: () => audio.playMoveStep(),
-      onSfxInteract: () => audio.playInteract(),
-      onSfxDoor: () => audio.playDoor(),
-    }),
-    [audio],
-  );
-
-  useEffect(() => {
-    const shouldPause = paused || showHelp || !!activeQuiz || !!activeFlipbookId || endgame;
-    gameRef.current?.setPaused(shouldPause);
-  }, [paused, showHelp, activeQuiz, activeFlipbookId, endgame]);
-
-  const closeFlipbook = useCallback(() => {
-    setActiveFlipbookId(null);
-  }, []);
-
-  const closeQuiz = useCallback(() => {
-    setActiveQuiz(null);
-  }, []);
-
   const onQuizComplete = useCallback(
     async (res: { quizId: QuizId; totalTimeMs: number; attempts: number }) => {
       if (!save) {
@@ -208,6 +182,65 @@ export function GamePage() {
     [save, syncSaveFromGame],
   );
 
+  const callbacks = useMemo(
+    () => ({
+      onRequestFlipbook: (flipbookId: string, _title: string) => {
+        void _title;
+        setActiveFlipbookId(flipbookId);
+      },
+      onRequestQuiz: (quizId: QuizId, title: string) => {
+        if (debugSkipQuiz) {
+          // Debug shortcut: auto-complete quiz without showing the modal.
+          void onQuizComplete({ quizId, totalTimeMs: 0, attempts: 0 });
+          return;
+        }
+        setActiveQuiz({ quizId, title, openId: Date.now() });
+      },
+      onTogglePause: (p: boolean) => {
+        setPaused(p);
+        if (p) audio.suspend();
+        else audio.resume();
+      },
+      onSfxMoveStep: () => audio.playMoveStep(),
+      onSfxInteract: () => audio.playInteract(),
+      onSfxDoor: () => audio.playDoor(),
+    }),
+    [audio, debugSkipQuiz, onQuizComplete],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Hidden trigger: Ctrl + Alt + D
+      if (e.ctrlKey && e.altKey && e.code === "KeyD") {
+        e.preventDefault();
+        setDebugSkipQuiz((prev) => {
+          const next = !prev;
+          try {
+            window.localStorage.setItem("btls_debug_skip_quiz", next ? "1" : "0");
+          } catch {
+            // ignore
+          }
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const shouldPause = paused || showHelp || !!activeQuiz || !!activeFlipbookId || endgame;
+    gameRef.current?.setPaused(shouldPause);
+  }, [paused, showHelp, activeQuiz, activeFlipbookId, endgame]);
+
+  const closeFlipbook = useCallback(() => {
+    setActiveFlipbookId(null);
+  }, []);
+
+  const closeQuiz = useCallback(() => {
+    setActiveQuiz(null);
+  }, []);
+
   const onResume = useCallback(() => {
     setPaused(false);
     gameRef.current?.setHardPaused(false);
@@ -248,8 +281,10 @@ export function GamePage() {
         {started ? <GameCanvas ref={gameRef} initial={initial} callbacks={callbacks} /> : null}
       </div>
 
+      {debugSkipQuiz ? <div className={styles.debugBadge}>DEBUG: Skip quiz</div> : null}
+
       <StartOverlay
-        key={`${saveExists}-${save?.playerName ?? ""}`}
+        key={`${saveExists ? "1" : "0"}-${save?.playerName ?? ""}`}
         visible={!started}
         hasSave={saveExists}
         defaultName={save?.playerName ?? ""}
