@@ -32,19 +32,37 @@ function fmtMs(ms: number) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-async function postScore(payload: Record<string, unknown>) {
-  const url = process.env.NEXT_PUBLIC_SHEETS_ENDPOINT;
-  if (!url) return;
+async function postScore(payload: Record<string, unknown>, debug = false) {
   try {
-    await fetch(url, {
+    if (debug) console.log("[score] POST /api/score payload", payload);
+
+    const res = await fetch("/api/score", {
       method: "POST",
-      // Apps Script Web App doesn't reliably support setting CORS headers.
-      // Use a simple request + no-cors to avoid preflight; logging is best-effort.
-      mode: "no-cors",
-      headers: { "content-type": "text/plain;charset=UTF-8" },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
       keepalive: true,
     });
+
+    // Best-effort logging: only warn if proxy reports failure.
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn("[score] POST /api/score failed", { status: res.status, body: text, payload });
+      return;
+    }
+
+    const json = (await res.json().catch(() => null)) as null | {
+      ok?: boolean;
+      status?: number;
+      requestId?: string;
+      elapsedMs?: number;
+      body?: string;
+    };
+
+    if (json && json.ok === false) {
+      console.warn("[score] Upstream webhook returned ok=false", json);
+    } else if (debug) {
+      console.log("[score] POST /api/score ok", json ?? { ok: true });
+    }
   } catch {
     // best-effort
   }
@@ -165,7 +183,7 @@ export function GamePage() {
             sideTotalTimeMs: next.score.sideTotalTimeMs,
             sideAttempts: next.score.sideAttempts,
             at: new Date().toISOString(),
-          });
+          }, debugSkipQuiz);
         }
       } else {
         gameRef.current?.burstCelebration();
@@ -178,7 +196,7 @@ export function GamePage() {
           mainTotalTimeMs: next.score.mainTotalTimeMs,
           mainAttempts: next.score.mainAttempts,
           at: new Date().toISOString(),
-        });
+        }, debugSkipQuiz);
       }
 
       writeSave(next);
@@ -396,7 +414,7 @@ export function GamePage() {
 
             {!process.env.NEXT_PUBLIC_SHEETS_ENDPOINT ? (
               <div className={styles.endMuted}>
-                (Chưa cấu hình Google Sheet webhook: đặt env `NEXT_PUBLIC_SHEETS_ENDPOINT` nếu cần thống kê.)
+                (Chưa cấu hình Google Sheet webhook: đặt env `SHEETS_ENDPOINT` (khuyến nghị) hoặc `NEXT_PUBLIC_SHEETS_ENDPOINT`.)
               </div>
             ) : null}
           </div>

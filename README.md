@@ -2,7 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Google Sheets: lưu điểm (A → Z)
 
-Project đã có sẵn phần gửi điểm qua HTTP POST trong [src/components/GamePage.tsx](src/components/GamePage.tsx) thông qua env `NEXT_PUBLIC_SHEETS_ENDPOINT`.
+Project gửi điểm theo luồng ổn định (không dính CORS/redirect):
+
+- Client POST về `POST /api/score`
+- Server (Next.js) forward sang Apps Script Web App
+
+Bạn chỉ cần cấu hình env cho server.
 
 ### 1) Tạo Google Sheet
 
@@ -73,8 +78,6 @@ function doPost(e) {
 }
 ```
 
-Ghi chú: Nếu bạn test bằng browser và gặp CORS, project hiện gửi request với `mode: "no-cors"` + `Content-Type: text/plain` nên **không cần** xử lý preflight/`doOptions()`.
-
 ### 3) Deploy Web App và lấy link
 
 1. Apps Script: Deploy → New deployment.
@@ -89,13 +92,17 @@ Ghi chú: Nếu bạn test bằng browser và gặp CORS, project hiện gửi r
 ### 4) Cấu hình vào Next.js
 
 1. Tạo file `.env.local` trong folder [bao-tang-lich-su](.) (cùng cấp `package.json`).
-2. Dán:
+2. Dán (khuyến nghị):
 
-	 - `NEXT_PUBLIC_SHEETS_ENDPOINT=https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec`
+	 - `SHEETS_ENDPOINT=https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec`
 
 	 Nếu bạn bật token ở Apps Script:
 
-	 - `NEXT_PUBLIC_SHEETS_ENDPOINT=https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?token=my_secret_token`
+	 - `SHEETS_ENDPOINT=https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec?token=my_secret_token`
+
+	 (Tuỳ chọn) Nếu muốn ẩn dòng nhắc trong UI endgame, set thêm:
+
+	 - `NEXT_PUBLIC_SHEETS_ENDPOINT=1`
 
 3. Restart dev server:
 
@@ -127,6 +134,14 @@ Bạn có thể test ngay bằng PowerShell:
 
 ```powershell
 $url = "https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec"
+$body = @{ kind = "side"; playerName = "Test"; sideTotalTimeMs = 12345; sideAttempts = 2; at = (Get-Date).ToString("o") } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $body
+```
+
+Hoặc test qua API proxy của app (khi bạn đang chạy `npm run dev`):
+
+```powershell
+$url = "http://localhost:3000/api/score"
 $body = @{ kind = "side"; playerName = "Test"; sideTotalTimeMs = 12345; sideAttempts = 2; at = (Get-Date).ToString("o") } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri $url -ContentType "application/json" -Body $body
 ```
