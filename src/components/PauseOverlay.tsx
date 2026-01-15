@@ -78,17 +78,10 @@ export function PauseOverlay(props: {
             </div>
           </div>
 
-          <div className={styles.grid2}>
-            <div>
-              <div className={styles.muted}>Score phụ (map 1 + 2)</div>
-              <div>Thời gian: {fmtMs(props.score.sideTotalTimeMs)}</div>
-              <div>Lần thử: {props.score.sideAttempts}</div>
-            </div>
-            <div>
-              <div className={styles.muted}>Score chính (tổng kết)</div>
-              <div>Thời gian: {fmtMs(props.score.mainTotalTimeMs)}</div>
-              <div>Lần thử: {props.score.mainAttempts}</div>
-            </div>
+          <div>
+            <div className={styles.muted}>Score</div>
+            <div>Thời gian: {fmtMs(props.score.totalTimeMs)}</div>
+            <div>Lần thử: {props.score.attempts}</div>
           </div>
 
           <div className={styles.row}>

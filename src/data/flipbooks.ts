@@ -6,7 +6,7 @@ export type FlipbookId =
   | "m1-to-chuc"
   | "m2-dan-chu"
   | "m2-phap-quyen"
-  | "m2-kiem-soat"
+  | "m2-phat-huy"
   | "m2-tham-gia"
   | "m3-tong-ket";
 
@@ -72,9 +72,9 @@ export const FLIPBOOKS: Record<FlipbookId, Flipbook> = {
       "Đề cao công khai, minh bạch và trách nhiệm giải trình.",
     ],
   },
-  "m2-kiem-soat": {
-    id: "m2-kiem-soat",
-    title: "Kiểm soát quyền lực",
+  "m2-phat-huy": {
+    id: "m2-phat-huy",
+    title: "Phát huy dân chủ XHCN",
     pages: [
       "Kiểm soát quyền lực để phòng chống lạm quyền, tham nhũng.",
       "Cơ chế giám sát, phản biện xã hội góp phần nâng cao chất lượng quản trị.",

@@ -5,7 +5,15 @@ import { Rect } from "@/game/util/Rect";
 import type { Interactable } from "@/game/objects/Interact";
 import type { MapId } from "@/game/save/SaveLoad";
 
-export type WallFrame = { id: string; x: number; y: number; w: number; h: number; title: string };
+export type WallFrame = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title: string;
+  imageSrc: string;
+};
 
 export type MapDef = {
   id: MapId;
@@ -27,7 +35,7 @@ function exhibit(
   return {
     id,
     type: "exhibit",
-    rect: new Rect(x, y, 86, 66),
+    rect: new Rect(x, y, 140, 100),
     title,
     hint: "Nhấn E để xem flipbook",
     flipbookId,
@@ -45,7 +53,7 @@ function doorOrStage(
   return {
     id,
     type,
-    rect: new Rect(x, y, 90, 140),
+    rect: new Rect(x, y, 180, 70),
     title,
     hint: "Nhấn E để làm quiz",
     quizId,
@@ -59,6 +67,7 @@ function frameInteractable(id: string, f: WallFrame): Interactable {
     rect: new Rect(f.x, f.y, f.w, f.h),
     title: f.title,
     hint: "Nhấn E để phóng to khung hình",
+    imageSrc: f.imageSrc,
   };
 }
 
@@ -66,9 +75,12 @@ export function buildMaps(): Record<MapId, MapDef> {
   const W = 2400;
   const H = 720;
 
+  const FRAME_M3_F1_IMAGE = "/assets/image1.jpg";
+  const FRAME_M3_F2_IMAGE = "/assets/image1.jpg";
+
   // Keep consistent with the renderer wall bands in Game.ts
-  const WALL_TOP_H = 110;
-  const WALL_BOTTOM_H = 96;
+  const WALL_TOP_H = 50;
+  const WALL_BOTTOM_H = -20;
 
   const map1Obstacles: Rect[] = [];
   const map2Obstacles: Rect[] = [];
@@ -86,39 +98,38 @@ export function buildMaps(): Record<MapId, MapDef> {
   addWallObstacles(map3Obstacles);
 
   // Pedestals as obstacles (slightly larger than interact rect)
-  const pedestalObstacle = (x: number, y: number) => new Rect(x - 6, y - 6, 98, 78);
+  const pedestalObstacle = (x: number, y: number) => new Rect(x - 10, y - 10, 156, 126);
 
   // Map 1 exhibits
   const m1Exhibits: Interactable[] = [
-    exhibit("m1-e1", 520, 220, "Quyền lực thuộc về nhân dân", "m1-trung-tam-quyen-luc"),
-    exhibit("m1-e2", 980, 500, "Chức năng nhà nước", "m1-chuc-nang"),
-    exhibit("m1-e3", 1400, 220, "Pháp luật và thượng tôn", "m1-phap-luat"),
-    exhibit("m1-e4", 1780, 500, "Tổ chức bộ máy", "m1-to-chuc"),
+    exhibit("m1-e1", 130, 350, "Quyền lực thuộc về nhân dân", "m1-trung-tam-quyen-luc"),
+    exhibit("m1-e2", 2130, 350, "Chức năng nhà nước", "m1-chuc-nang"),
+    exhibit("m1-e3", 580, 750, "Pháp luật và thượng tôn", "m1-phap-luat"),
+    exhibit("m1-e4", 1700, 750, "Tổ chức bộ máy", "m1-to-chuc"),
   ];
   for (const it of m1Exhibits) addObstacle(map1Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
   // Door frame draws at x-6..x+w+6; keep fully inside the map.
-  const m1Door = doorOrStage("m1-door", "door", W - 96, H / 2 - 70, "Cửa qua màn 2", "map1");
+  const m1Door = doorOrStage("m1-door", "door", W * 0.5 - 90, 40, "Cửa qua màn 2", "map1");
   addObstacle(map1Obstacles, new Rect(m1Door.rect.x, m1Door.rect.y, m1Door.rect.w, m1Door.rect.h));
 
   // Map 2 exhibits
   const m2Exhibits: Interactable[] = [
-    exhibit("m2-e1", 520, 500, "Dân chủ xã hội chủ nghĩa", "m2-dan-chu"),
-    exhibit("m2-e2", 980, 220, "Nhà nước pháp quyền XHCN", "m2-phap-quyen"),
-    exhibit("m2-e3", 1400, 500, "Kiểm soát quyền lực", "m2-kiem-soat"),
-    exhibit("m2-e4", 1780, 220, "Nhân dân tham gia quản lý", "m2-tham-gia"),
+    exhibit("m2-e1", 470, 450, "Dân chủ XHCN ở Việt Nam", "m2-dan-chu"),
+    exhibit("m2-e2", 1180, 450, "Nhà nước pháp quyền XHCN", "m2-phap-quyen"),
+    exhibit("m2-e3", 1920, 450, "Phát huy dân chủ XHCN", "m2-phat-huy"),
   ];
   for (const it of m2Exhibits) addObstacle(map2Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
-  const m2Door = doorOrStage("m2-door", "door", W - 96, H / 2 - 70, "Cửa qua màn 3", "map2");
+  const m2Door = doorOrStage("m2-door", "door", W * 0.5 - 80, 30, "Cửa qua màn 3", "map2");
   addObstacle(map2Obstacles, new Rect(m2Door.rect.x, m2Door.rect.y, m2Door.rect.w, m2Door.rect.h));
 
   // Map 3 exhibits (avoid top wall frames)
   const m3Exhibits: Interactable[] = [
-    exhibit("m3-e1", 520, 520, "Ôn tập nhanh", "m3-tong-ket"),
-    exhibit("m3-e2", 980, 520, "Ôn tập nhanh", "m3-tong-ket"),
-    exhibit("m3-e3", 1400, 520, "Ôn tập nhanh", "m3-tong-ket"),
-    exhibit("m3-e4", 1780, 520, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e1", 350, 720, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e2", 870, 720, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e3", 1380, 720, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e4", 1920, 720, "Ôn tập nhanh", "m3-tong-ket"),
   ];
   for (const it of m3Exhibits) addObstacle(map3Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
@@ -126,16 +137,32 @@ export function buildMaps(): Record<MapId, MapDef> {
     "m3-stage",
     "stage",
     // Stage base draws at x-38..x+w+38; keep fully inside the map.
-    W - 128,
-    H / 2 - 90,
+    W - 300,
+    H / 2,
     "Sân khấu tổng kết",
     "final",
   );
   addObstacle(map3Obstacles, new Rect(m3Stage.rect.x, m3Stage.rect.y, m3Stage.rect.w, m3Stage.rect.h));
 
   const wallFrames: WallFrame[] = [
-    { id: "m3-f1", x: 720, y: 90, w: 420, h: 190, title: "Khung 1: Dân chủ XHCN" },
-    { id: "m3-f2", x: 1320, y: 90, w: 420, h: 190, title: "Khung 2: Nhà nước pháp quyền" },
+    {
+      id: "m3-f1",
+      x: 720,
+      y: 90,
+      w: 420,
+      h: 190,
+      title: "Khung 1: Dân chủ XHCN",
+      imageSrc: FRAME_M3_F1_IMAGE,
+    },
+    {
+      id: "m3-f2",
+      x: 1320,
+      y: 90,
+      w: 420,
+      h: 190,
+      title: "Khung 2: Nhà nước pháp quyền",
+      imageSrc: FRAME_M3_F2_IMAGE,
+    },
   ];
 
   // Frames behave like objects: collision + interact popup
