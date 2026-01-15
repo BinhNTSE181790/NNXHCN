@@ -23,7 +23,7 @@ export type GameCanvasProps = {
   callbacks: {
     onRequestFlipbook: (flipbookId: string, title: string) => void;
     onRequestQuiz: (quizId: QuizId, title: string) => void;
-    onRequestFrame: (frameId: string, title: string) => void;
+    onRequestFrame: (frameId: string, title: string, imageSrc?: string) => void;
     onTogglePause: (paused: boolean) => void;
     onSfxMoveStep: () => void;
     onSfxInteract: () => void;

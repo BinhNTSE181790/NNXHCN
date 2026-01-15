@@ -4,13 +4,8 @@ import type { QuizId } from "@/data/questions";
 export type MapId = 1 | 2 | 3;
 
 export type ScoreState = {
-  // Score phụ (map 1 + 2)
-  sideTotalTimeMs: number;
-  sideAttempts: number;
-
-  // Score chính (final)
-  mainTotalTimeMs: number;
-  mainAttempts: number;
+  totalTimeMs: number;
+  attempts: number;
 };
 
 export type SaveStateV1 = {
@@ -30,10 +25,8 @@ const KEY = "btls_save_v1";
 
 export function defaultScoreState(): ScoreState {
   return {
-    sideTotalTimeMs: 0,
-    sideAttempts: 0,
-    mainTotalTimeMs: 0,
-    mainAttempts: 0,
+    totalTimeMs: 0,
+    attempts: 0,
   };
 }
 
@@ -42,7 +35,7 @@ export function defaultSave(playerName = "") : SaveStateV1 {
     v: 1,
     playerName,
     mapId: 1,
-    px: 140,
+    px: 360,
     py: 360,
     score: defaultScoreState(),
     completed: {},
@@ -63,6 +56,17 @@ export function loadSave(): SaveStateV1 | null {
   try {
     const parsed = JSON.parse(raw) as SaveStateV1;
     if (!parsed || parsed.v !== 1) return null;
+    const score = parsed.score as unknown as Partial<ScoreState> & {
+      sideTotalTimeMs?: number;
+      sideAttempts?: number;
+      mainTotalTimeMs?: number;
+      mainAttempts?: number;
+    };
+    if (score && (typeof score.totalTimeMs !== "number" || typeof score.attempts !== "number")) {
+      const totalTimeMs = (score.sideTotalTimeMs ?? 0) + (score.mainTotalTimeMs ?? 0);
+      const attempts = (score.sideAttempts ?? 0) + (score.mainAttempts ?? 0);
+      parsed.score = { totalTimeMs, attempts };
+    }
     return parsed;
   } catch {
     return null;
