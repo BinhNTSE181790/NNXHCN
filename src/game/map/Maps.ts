@@ -35,7 +35,7 @@ function exhibit(
   return {
     id,
     type: "exhibit",
-    rect: new Rect(x, y, 86, 66),
+    rect: new Rect(x, y, 140, 100),
     title,
     hint: "Nhấn E để xem flipbook",
     flipbookId,
@@ -98,14 +98,14 @@ export function buildMaps(): Record<MapId, MapDef> {
   addWallObstacles(map3Obstacles);
 
   // Pedestals as obstacles (slightly larger than interact rect)
-  const pedestalObstacle = (x: number, y: number) => new Rect(x - 6, y - 6, 98, 78);
+  const pedestalObstacle = (x: number, y: number) => new Rect(x - 10, y - 10, 156, 126);
 
   // Map 1 exhibits
   const m1Exhibits: Interactable[] = [
-    exhibit("m1-e1", 180, 350, "Quyền lực thuộc về nhân dân", "m1-trung-tam-quyen-luc"),
+    exhibit("m1-e1", 130, 350, "Quyền lực thuộc về nhân dân", "m1-trung-tam-quyen-luc"),
     exhibit("m1-e2", 2130, 350, "Chức năng nhà nước", "m1-chuc-nang"),
     exhibit("m1-e3", 580, 750, "Pháp luật và thượng tôn", "m1-phap-luat"),
-    exhibit("m1-e4", 1750, 750, "Tổ chức bộ máy", "m1-to-chuc"),
+    exhibit("m1-e4", 1700, 750, "Tổ chức bộ máy", "m1-to-chuc"),
   ];
   for (const it of m1Exhibits) addObstacle(map1Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
@@ -126,10 +126,10 @@ export function buildMaps(): Record<MapId, MapDef> {
 
   // Map 3 exhibits (avoid top wall frames)
   const m3Exhibits: Interactable[] = [
-    exhibit("m3-e1", 520, 520, "Ôn tập nhanh", "m3-tong-ket"),
-    exhibit("m3-e2", 980, 520, "Ôn tập nhanh", "m3-tong-ket"),
-    exhibit("m3-e3", 1400, 520, "Ôn tập nhanh", "m3-tong-ket"),
-    exhibit("m3-e4", 1780, 520, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e1", 350, 720, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e2", 870, 720, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e3", 1380, 720, "Ôn tập nhanh", "m3-tong-ket"),
+    exhibit("m3-e4", 1920, 720, "Ôn tập nhanh", "m3-tong-ket"),
   ];
   for (const it of m3Exhibits) addObstacle(map3Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 

@@ -459,19 +459,23 @@ export class Game {
         this.drawExhibit(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, it.flipbookId ?? "", isNear, pulse);
 
         // label (neutral, academic)
-        ctx.fillStyle = map.id === 1 ? "#b91c1c" : "#000000";
-        ctx.font = "bold 16px system-ui";
-        ctx.fillText(it.title, it.rect.x - 40, it.rect.y - 10);
+        ctx.fillStyle = map.id === 1 ? "#1a10aa" : "#000000";
+        ctx.font = "bold 18px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(it.title, it.rect.x + it.rect.w * 0.5, it.rect.y - 8);
       } else if (it.type === "door") {
         this.drawDoor(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, isNear, pulse);
         ctx.fillStyle = "rgb(21, 22, 24)";
         ctx.font = "bold 16px system-ui";
-        ctx.fillText("Tầng tiếp theo", it.rect.x + 30, it.rect.y + 90);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("Tầng tiếp theo", it.rect.x + it.rect.w * 0.5, it.rect.y + it.rect.h + 20);
       } else if (it.type === "stage") {
         this.drawStage(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, isNear, pulse);
         ctx.fillStyle = "#000000";
-        ctx.font = "16px system-ui";
-        ctx.fillText("Kết thúc", it.rect.x - 70, it.rect.y + 50);
+        ctx.font = "bold 16px system-ui";
+        ctx.fillText("Kết thúc", it.rect.x - it.rect.w * 0.05, it.rect.y + it.rect.h);
       } else if (it.type === "frame") {
         // Frames are rendered in drawMuseum().
       }
