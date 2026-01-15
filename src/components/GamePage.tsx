@@ -23,7 +23,7 @@ import {
 import { QUIZ_QUESTIONS, type QuizId } from "@/data/questions";
 
 type ActiveQuiz = { quizId: QuizId; title: string; openId: number } | null;
-type ActiveFrame = { frameId: string; title: string; openId: number } | null;
+type ActiveFrame = { frameId: string; title: string; imageSrc?: string; openId: number } | null;
 
 function fmtMs(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -201,8 +201,8 @@ export function GamePage() {
         }
         setActiveQuiz({ quizId, title, openId: Date.now() });
       },
-      onRequestFrame: (frameId: string, title: string) => {
-        setActiveFrame({ frameId, title, openId: Date.now() });
+      onRequestFrame: (frameId: string, title: string, imageSrc?: string) => {
+        setActiveFrame({ frameId, title, imageSrc, openId: Date.now() });
       },
       onTogglePause: (p: boolean) => {
         setPaused(p);
@@ -349,6 +349,7 @@ export function GamePage() {
           visible={true}
           frameId={activeFrame.frameId}
           title={activeFrame.title}
+          imageSrc={activeFrame.imageSrc}
           onClose={closeFrame}
         />
       ) : null}

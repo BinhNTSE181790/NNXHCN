@@ -5,7 +5,15 @@ import { Rect } from "@/game/util/Rect";
 import type { Interactable } from "@/game/objects/Interact";
 import type { MapId } from "@/game/save/SaveLoad";
 
-export type WallFrame = { id: string; x: number; y: number; w: number; h: number; title: string };
+export type WallFrame = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title: string;
+  imageSrc: string;
+};
 
 export type MapDef = {
   id: MapId;
@@ -59,12 +67,16 @@ function frameInteractable(id: string, f: WallFrame): Interactable {
     rect: new Rect(f.x, f.y, f.w, f.h),
     title: f.title,
     hint: "Nhấn E để phóng to khung hình",
+    imageSrc: f.imageSrc,
   };
 }
 
 export function buildMaps(): Record<MapId, MapDef> {
   const W = 2400;
   const H = 720;
+
+  const FRAME_M3_F1_IMAGE = "/assets/image1.jpg";
+  const FRAME_M3_F2_IMAGE = "/assets/image1.jpg";
 
   // Keep consistent with the renderer wall bands in Game.ts
   const WALL_TOP_H = 50;
@@ -125,16 +137,32 @@ export function buildMaps(): Record<MapId, MapDef> {
     "m3-stage",
     "stage",
     // Stage base draws at x-38..x+w+38; keep fully inside the map.
-    W - 128,
-    H / 2 - 90,
+    W - 300,
+    H / 2,
     "Sân khấu tổng kết",
     "final",
   );
   addObstacle(map3Obstacles, new Rect(m3Stage.rect.x, m3Stage.rect.y, m3Stage.rect.w, m3Stage.rect.h));
 
   const wallFrames: WallFrame[] = [
-    { id: "m3-f1", x: 720, y: 90, w: 420, h: 190, title: "Khung 1: Dân chủ XHCN" },
-    { id: "m3-f2", x: 1320, y: 90, w: 420, h: 190, title: "Khung 2: Nhà nước pháp quyền" },
+    {
+      id: "m3-f1",
+      x: 720,
+      y: 90,
+      w: 420,
+      h: 190,
+      title: "Khung 1: Dân chủ XHCN",
+      imageSrc: FRAME_M3_F1_IMAGE,
+    },
+    {
+      id: "m3-f2",
+      x: 1320,
+      y: 90,
+      w: 420,
+      h: 190,
+      title: "Khung 2: Nhà nước pháp quyền",
+      imageSrc: FRAME_M3_F2_IMAGE,
+    },
   ];
 
   // Frames behave like objects: collision + interact popup

@@ -12,7 +12,7 @@ import { ConfettiSystem } from "@/game/vfx/Confetti";
 export type GameCallbacks = {
   onRequestFlipbook: (flipbookId: string, title: string) => void;
   onRequestQuiz: (quizId: QuizId, title: string) => void;
-  onRequestFrame: (frameId: string, title: string) => void;
+  onRequestFrame: (frameId: string, title: string, imageSrc?: string) => void;
   onTogglePause: (paused: boolean) => void;
   onSfxMoveStep: () => void;
   onSfxInteract: () => void;
@@ -42,6 +42,7 @@ export class Game {
   private mapBackgrounds: Record<MapId, HTMLImageElement>;
   private doorImage: HTMLImageElement;
   private characterImage: HTMLImageElement;
+  private frameImages: Record<string, HTMLImageElement> = {};
 
   private hardPaused = false;
   private softPaused = false;
@@ -80,6 +81,14 @@ export class Game {
     this.doorImage = this.loadMapBackground("/assets/stairs.jpg");
     this.characterImage = this.loadMapBackground("/assets/character.png");
 
+    for (const map of Object.values(this.maps)) {
+      for (const frame of map.wallFrames) {
+        if (!this.frameImages[frame.id]) {
+          this.frameImages[frame.id] = this.loadMapBackground(frame.imageSrc);
+        }
+      }
+    }
+
     window.addEventListener("keydown", this.input.onKeyDown, { passive: true });
     window.addEventListener("keyup", this.input.onKeyUp, { passive: true });
     document.addEventListener("visibilitychange", this.onVisibility, { passive: true });
@@ -89,6 +98,9 @@ export class Game {
     const img = new Image();
     img.decoding = "async";
     img.loading = "eager";
+    if (src.startsWith("http")) {
+      img.referrerPolicy = "no-referrer";
+    }
     img.src = src;
     return img;
   }
@@ -250,7 +262,7 @@ export class Game {
       }
       if (this.nearest.type === "frame") {
         this.callbacks.onSfxInteract();
-        this.callbacks.onRequestFrame(this.nearest.id, this.nearest.title);
+        this.callbacks.onRequestFrame(this.nearest.id, this.nearest.title, this.nearest.imageSrc);
       }
     }
 
@@ -381,16 +393,32 @@ export class Game {
         ctx.lineWidth = isNear ? 5 : 4;
         ctx.strokeRect(f.x, f.y, f.w, f.h);
 
-        // inner abstract
-        ctx.globalAlpha = 0.22;
-        ctx.fillStyle = "#93c5fd";
-        ctx.beginPath();
-        ctx.arc(f.x + f.w * 0.3, f.y + f.h * 0.45, 22, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#d8c08a";
-        ctx.fillRect(f.x + f.w * 0.52, f.y + f.h * 0.28, 90, 10);
-        ctx.fillRect(f.x + f.w * 0.52, f.y + f.h * 0.52, 120, 10);
-        ctx.globalAlpha = 1;
+        if (!this.frameImages[f.id] || this.frameImages[f.id].src !== f.imageSrc) {
+          this.frameImages[f.id] = this.loadMapBackground(f.imageSrc);
+        }
+        const img = this.frameImages[f.id];
+        if (img && img.complete && img.naturalWidth > 0) {
+          const pad = 10;
+          const iw = f.w - pad * 2;
+          const ih = f.h - pad * 2;
+          const scale = Math.max(iw / img.naturalWidth, ih / img.naturalHeight);
+          const drawW = img.naturalWidth * scale;
+          const drawH = img.naturalHeight * scale;
+          const dx = f.x + pad + (iw - drawW) * 0.5;
+          const dy = f.y + pad + (ih - drawH) * 0.5;
+          ctx.drawImage(img, dx, dy, drawW, drawH);
+        } else {
+          // inner abstract fallback
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = "#93c5fd";
+          ctx.beginPath();
+          ctx.arc(f.x + f.w * 0.3, f.y + f.h * 0.45, 22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#d8c08a";
+          ctx.fillRect(f.x + f.w * 0.52, f.y + f.h * 0.28, 90, 10);
+          ctx.fillRect(f.x + f.w * 0.52, f.y + f.h * 0.52, 120, 10);
+          ctx.globalAlpha = 1;
+        }
 
         ctx.fillStyle = "#334155";
         ctx.font = "16px system-ui";
@@ -439,11 +467,13 @@ export class Game {
         ctx.fillStyle = "rgb(21, 22, 24)";
         ctx.font = "bold 16px system-ui";
         ctx.fillText("Tầng tiếp theo", it.rect.x + 30, it.rect.y + 90);
-      } else {
+      } else if (it.type === "stage") {
         this.drawStage(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, isNear, pulse);
-        ctx.fillStyle = "#334155";
+        ctx.fillStyle = "#000000";
         ctx.font = "16px system-ui";
-        ctx.fillText("SÂN KHẤU", it.rect.x - 10, it.rect.y - 10);
+        ctx.fillText("Kết thúc", it.rect.x - 70, it.rect.y + 50);
+      } else if (it.type === "frame") {
+        // Frames are rendered in drawMuseum().
       }
     }
   }
@@ -533,8 +563,8 @@ export class Game {
       ctx.imageSmoothingEnabled = true;
       const cx = x + w * 0.5;
       const cy = y + h * 0.5;
-      const drawW = 120;
-      const drawH = 180;
+      const drawW = 180;
+      const drawH = 50;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(Math.PI / 2);
