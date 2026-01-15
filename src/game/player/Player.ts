@@ -5,14 +5,14 @@ import { Rect } from "@/game/util/Rect";
 import { Vec2 } from "@/game/util/Vec2";
 
 export class Player {
-  pos = new Vec2(140, 360);
+  pos = new Vec2(360, 360);
   vel = new Vec2(0, 0);
 
   // last movement direction (used for rendering facing)
   facing = new Vec2(1, 0);
 
   // collision box centered on pos
-  half = new Vec2(14, 18);
+  half = new Vec2(26, 32);
 
   private stepTimer = 0;
   private tmpDir = new Vec2();
@@ -51,7 +51,7 @@ export class Player {
       this.facing.set(ax > 0 ? 1 : -1, 0);
     }
 
-    const speed = 240;
+    const speed = 300;
     this.vel.copy(dir).scale(speed);
 
     const dx = this.vel.x * dt;
@@ -65,8 +65,8 @@ export class Player {
     const minX = this.half.x;
     const maxX = bounds.w - this.half.x;
     // Keep in sync with the museum wall bands used by the renderer & map obstacles.
-    const wallTopH = 110;
-    const wallBottomH = 96;
+    const wallTopH = 50;
+    const wallBottomH = -20;
     const minY = wallTopH + this.half.y + 2;
     const maxY = bounds.h - wallBottomH - this.half.y - 2;
     this.pos.x = clamp(this.pos.x, minX, maxX);

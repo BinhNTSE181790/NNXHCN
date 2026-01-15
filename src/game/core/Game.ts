@@ -39,6 +39,9 @@ export class Game {
   private player = new Player();
   private maps = buildMaps();
   private mapId: MapId;
+  private mapBackgrounds: Record<MapId, HTMLImageElement>;
+  private doorImage: HTMLImageElement;
+  private characterImage: HTMLImageElement;
 
   private hardPaused = false;
   private softPaused = false;
@@ -58,10 +61,6 @@ export class Game {
 
   private callbacks: GameCallbacks;
 
-  // Visual constants (Design_Prompt)
-  private readonly WALL_TOP_H = 110;
-  private readonly WALL_BOTTOM_H = 96;
-
   constructor(init: GameInit) {
     this.canvas = init.canvas;
     const ctx = this.canvas.getContext("2d", { alpha: false, desynchronized: true });
@@ -72,9 +71,26 @@ export class Game {
     this.mapId = init.mapId;
     this.player.setSpawn(init.px, init.py);
 
+    this.mapBackgrounds = {
+      1: this.loadMapBackground("/assets/MapBackground/map1.jpg"),
+      2: this.loadMapBackground("/assets/MapBackground/map2.jpg"),
+      3: this.loadMapBackground("/assets/MapBackground/map3.jpg"),
+    };
+
+    this.doorImage = this.loadMapBackground("/assets/stairs.jpg");
+    this.characterImage = this.loadMapBackground("/assets/character.png");
+
     window.addEventListener("keydown", this.input.onKeyDown, { passive: true });
     window.addEventListener("keyup", this.input.onKeyUp, { passive: true });
     document.addEventListener("visibilitychange", this.onVisibility, { passive: true });
+  }
+
+  private loadMapBackground(src: string) {
+    const img = new Image();
+    img.decoding = "async";
+    img.loading = "eager";
+    img.src = src;
+    return img;
   }
 
   destroy() {
@@ -157,13 +173,13 @@ export class Game {
   advanceMap() {
     if (this.mapId === 1) {
       this.mapId = 2;
-      this.player.setSpawn(140, 360);
+      this.player.setSpawn(360, 360);
       this.confetti.burst(this.player.pos.x + 120, this.player.pos.y - 40, 60);
       return;
     }
     if (this.mapId === 2) {
       this.mapId = 3;
-      this.player.setSpawn(140, 360);
+      this.player.setSpawn(360, 360);
       this.confetti.burst(this.player.pos.x + 120, this.player.pos.y - 40, 70);
       return;
     }
@@ -180,8 +196,14 @@ export class Game {
     }
 
     const map = this.maps[this.mapId];
-    // Spawn near the right edge (but not inside the door/stage obstacle).
-    this.player.setSpawn(map.width - 260, map.height * 0.5);
+    const door = map.interactables.find((it) => it.type === "door");
+    if (door) {
+      const sx = door.rect.x + door.rect.w * 0.5;
+      const sy = door.rect.y + 90;
+      this.player.setSpawn(sx, sy);
+    } else {
+      this.player.setSpawn(map.width * 0.5, map.height * 0.5);
+    }
   }
 
   burstCelebration() {
@@ -341,68 +363,7 @@ export class Game {
   private drawMuseum(ctx: CanvasRenderingContext2D) {
     const map = this.maps[this.mapId];
 
-    const wallTopH = this.WALL_TOP_H;
-    const wallBotH = this.WALL_BOTTOM_H;
-    const floorY0 = wallTopH;
-    // If viewport is taller than the map (e.g. portrait screens), push the bottom wall
-    // down to the visible bottom so it doesn't appear "floating" above the screen edge.
-    const visibleBottomY = this.camY + this.viewH;
-    const bottomWallY = Math.max(map.height - wallBotH, visibleBottomY - wallBotH);
-    const floorY1 = bottomWallY;
-
-    // walls (be / xám nhạt)
-    ctx.fillStyle = "#e7e1d6";
-    ctx.fillRect(0, 0, map.width, wallTopH);
-    ctx.fillStyle = "#e7e1d6";
-    ctx.fillRect(0, bottomWallY, map.width, wallBotH);
-
-    // wall shadows
-    ctx.fillStyle = "rgba(0,0,0,0.06)";
-    ctx.fillRect(0, wallTopH - 10, map.width, 10);
-    ctx.fillRect(0, bottomWallY, map.width, 10);
-
-    // floor (đá sáng)
-    ctx.fillStyle = "#d9dee7";
-    ctx.fillRect(0, floorY0, map.width, floorY1 - floorY0);
-
-    // stone tile grid (subtle)
-    ctx.globalAlpha = 0.18;
-    ctx.strokeStyle = "#c5cbd6";
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= map.width; x += 56) {
-      ctx.beginPath();
-      ctx.moveTo(x + 0.5, floorY0);
-      ctx.lineTo(x + 0.5, floorY1);
-      ctx.stroke();
-    }
-    for (let y = floorY0; y <= floorY1; y += 56) {
-      ctx.beginPath();
-      ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(map.width, y + 0.5);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-
-    // red carpet (center)
-    const cy = map.height * 0.5;
-    ctx.fillStyle = "#8e1f33";
-    ctx.fillRect(0, cy - 52, map.width, 104);
-    ctx.fillStyle = "#d8c08a";
-    ctx.fillRect(0, cy - 56, map.width, 4);
-    ctx.fillRect(0, cy + 52, map.width, 4);
-
-    // carpet subtle texture
-    ctx.globalAlpha = 0.08;
-    ctx.fillStyle = "#ffffff";
-    for (let x = 0; x < map.width; x += 22) {
-      ctx.fillRect(x, cy - 50, 10, 2);
-      ctx.fillRect(x + 8, cy + 48, 10, 2);
-    }
-    ctx.globalAlpha = 1;
-
-    // abstract wall decor: small frames + motifs (top & bottom)
-    this.drawWallGallery(ctx, map.width, 0, wallTopH, this.mapId);
-    this.drawWallGallery(ctx, map.width, map.height - wallBotH, wallBotH, this.mapId);
+    this.drawMapBackground(ctx, map);
 
     // map3 wall frames
     if (map.wallFrames.length) {
@@ -438,53 +399,24 @@ export class Game {
     }
   }
 
-  private drawWallGallery(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    y0: number,
-    h: number,
-    mapId: MapId,
-  ) {
-    const padX = 90;
-    const frameW = 120;
-    const frameH = 46;
-    const gap = 220;
-
-    const baseY = y0 + Math.floor(h * 0.28);
-
-    for (let x = padX; x < width - padX; x += gap) {
-      // Map 3: reserve the top wall area for the two big frames.
-      if (mapId === 3 && y0 === 0 && x > 560 && x < 1840) continue;
-
-      // small frame
-      ctx.fillStyle = "rgba(0,0,0,0.10)";
-      ctx.fillRect(x - 8, baseY - 6, frameW + 16, frameH + 12);
-      ctx.fillStyle = "#f1f5f9";
-      ctx.fillRect(x, baseY, frameW, frameH);
-      ctx.strokeStyle = "#d8c08a";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, baseY, frameW, frameH);
-
-      // abstract inside (no national icon)
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = mapId === 2 ? "#64748b" : "#475569";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x + 14, baseY + 28);
-      ctx.lineTo(x + 44, baseY + 14);
-      ctx.lineTo(x + 74, baseY + 30);
-      ctx.lineTo(x + 104, baseY + 18);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // small motif beside frame
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = mapId === 1 ? "#94a3b8" : mapId === 2 ? "#60a5fa" : "#d8c08a";
-      ctx.beginPath();
-      ctx.arc(x + frameW + 40, baseY + frameH * 0.5, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+  private drawMapBackground(ctx: CanvasRenderingContext2D, map: { id: MapId; width: number; height: number }) {
+    const img = this.mapBackgrounds[map.id];
+    if (img && img.complete && img.naturalWidth > 0) {
+      const prevSmoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = true;
+      const scale = Math.max(map.width / img.naturalWidth, map.height / img.naturalHeight);
+      const drawW = img.naturalWidth * scale;
+      const drawH = img.naturalHeight * scale;
+      const dx = (map.width - drawW) * 0.5;
+      const dy = (map.height - drawH) * 0.5;
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+      ctx.imageSmoothingEnabled = prevSmoothing;
+      return;
     }
+
+    // fallback while image is loading
+    ctx.fillStyle = "#d9dee7";
+    ctx.fillRect(0, 0, map.width, map.height);
   }
 
   private drawInteractables(ctx: CanvasRenderingContext2D) {
@@ -499,14 +431,14 @@ export class Game {
         this.drawExhibit(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, it.flipbookId ?? "", isNear, pulse);
 
         // label (neutral, academic)
-        ctx.fillStyle = "#334155";
-        ctx.font = "14px system-ui";
-        ctx.fillText(it.title, it.rect.x - 10, it.rect.y - 10);
+        ctx.fillStyle = map.id === 1 ? "#b91c1c" : "#000000";
+        ctx.font = "bold 16px system-ui";
+        ctx.fillText(it.title, it.rect.x - 40, it.rect.y - 10);
       } else if (it.type === "door") {
         this.drawDoor(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, isNear, pulse);
-        ctx.fillStyle = "#334155";
-        ctx.font = "16px system-ui";
-        ctx.fillText("CỬA", it.rect.x + 18, it.rect.y - 10);
+        ctx.fillStyle = "rgb(21, 22, 24)";
+        ctx.font = "bold 16px system-ui";
+        ctx.fillText("Tầng tiếp theo", it.rect.x + 30, it.rect.y + 90);
       } else {
         this.drawStage(ctx, it.rect.x, it.rect.y, it.rect.w, it.rect.h, isNear, pulse);
         ctx.fillStyle = "#334155";
@@ -526,153 +458,38 @@ export class Game {
     isNear: boolean,
     pulse01: number,
   ) {
-    // Isometric-ish pedestal: top face + right/ bottom faces
-    const topH = 18;
+    void flipbookId;
 
-    // shadow
+    // animated notice icon (blue info)
+    const time = nowMs() / 1000;
+    const scale = 0.9 + 0.08 * Math.sin(time * 3.2);
+    const cx = x + w * 0.5;
+    const cy = y + h * 0.5;
+    const r = Math.min(w, h) * 0.28 * scale;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(x + w * 0.5, y + h + 14, w * 0.55, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, r + 12, r * 1.1, 8, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // top slab
-    ctx.fillStyle = "#9aa3b2";
-    ctx.fillRect(x, y, w, topH);
-    ctx.fillStyle = "#6b7280";
-    ctx.fillRect(x, y + topH, w, h - topH);
-
-    // highlight edge (top)
-    ctx.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx.lineWidth = 2;
+    ctx.fillStyle = isNear ? "rgba(59,130,246,0.95)" : "rgba(59,130,246,0.85)";
+    ctx.strokeStyle = isNear ? `rgba(147,197,253,${0.6 + pulse01 * 0.25})` : "rgba(147,197,253,0.55)";
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(x + 2, y + 2);
-    ctx.lineTo(x + w - 2, y + 2);
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
 
-    // inner dark base (display area)
-    ctx.fillStyle = "#1f2937";
-    ctx.fillRect(x + 10, y + topH + 8, w - 20, h - topH - 16);
-
-    // glass overlay
-    const glassA = isNear ? 0.18 + pulse01 * 0.10 : 0.14;
-    ctx.globalAlpha = glassA;
-    ctx.fillStyle = "#93c5fd";
-    ctx.fillRect(x + 6, y + 6, w - 12, h - 12);
-    ctx.globalAlpha = 1;
-
-    // glass border highlight
-    if (isNear) {
-      ctx.strokeStyle = `rgba(216,192,138,${0.45 + pulse01 * 0.25})`;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x + 5.5, y + 5.5, w - 11, h - 11);
-    } else {
-      ctx.strokeStyle = "rgba(148,163,184,0.22)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x + 5.5, y + 5.5, w - 11, h - 11);
-    }
-
-    // diagonal glass shine
-    ctx.globalAlpha = 0.18;
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x + 12, y + 12);
-    ctx.lineTo(x + w - 18, y + 22);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // procedural icon inside
-    this.drawExhibitIcon(ctx, flipbookId, x + 16, y + topH + 14, w - 32, h - topH - 28);
-  }
-
-  private drawExhibitIcon(
-    ctx: CanvasRenderingContext2D,
-    flipbookId: string,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-  ) {
-    // All primitives, abstract (no flags/portraits)
-    ctx.save();
-    ctx.translate(x, y);
-
-    const cx = w * 0.5;
-    const cy = h * 0.5;
-
-    const ink = "rgba(216,192,138,0.85)";
-    const sky = "rgba(147,197,253,0.75)";
-    const line = "rgba(226,232,240,0.55)";
-
-    if (flipbookId.includes("dan-chu") || flipbookId.includes("tham-gia")) {
-      // circle-of-people motif
-      ctx.strokeStyle = sky;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, Math.min(w, h) * 0.28, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = ink;
-      for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(a) * 22, cy + Math.sin(a) * 12, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else if (flipbookId.includes("phap-luat") || flipbookId.includes("phap-quyen")) {
-      // law book motif
-      ctx.fillStyle = sky;
-      ctx.fillRect(cx - 18, cy - 16, 36, 32);
-      ctx.fillStyle = "rgba(15,23,42,0.55)";
-      ctx.fillRect(cx - 14, cy - 12, 28, 24);
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cx - 18, cy - 16, 36, 32);
-      ctx.strokeStyle = line;
-      ctx.beginPath();
-      ctx.moveTo(cx - 10, cy - 4);
-      ctx.lineTo(cx + 10, cy - 4);
-      ctx.moveTo(cx - 10, cy + 4);
-      ctx.lineTo(cx + 10, cy + 4);
-      ctx.stroke();
-    } else if (flipbookId.includes("kiem-soat") || flipbookId.includes("cong-ly")) {
-      // scale of justice motif
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - 18);
-      ctx.lineTo(cx, cy + 18);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(cx - 20, cy - 6);
-      ctx.lineTo(cx + 20, cy - 6);
-      ctx.stroke();
-      ctx.fillStyle = sky;
-      ctx.beginPath();
-      ctx.arc(cx - 14, cy + 4, 8, 0, Math.PI);
-      ctx.arc(cx + 14, cy + 4, 8, 0, Math.PI);
-      ctx.fill();
-    } else {
-      // simple governance diagram: boxes + arrows
-      ctx.fillStyle = sky;
-      ctx.fillRect(cx - 34, cy - 10, 22, 18);
-      ctx.fillRect(cx - 10, cy - 26, 22, 18);
-      ctx.fillRect(cx + 14, cy - 10, 22, 18);
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cx - 34, cy - 10, 22, 18);
-      ctx.strokeRect(cx - 10, cy - 26, 22, 18);
-      ctx.strokeRect(cx + 14, cy - 10, 22, 18);
-
-      ctx.strokeStyle = line;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx - 12, cy - 4);
-      ctx.lineTo(cx - 2, cy - 12);
-      ctx.lineTo(cx + 12, cy - 4);
-      ctx.stroke();
-    }
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${Math.max(16, Math.round(r * 1.2))}px system-ui`;
+    ctx.fillText("i", 0, 1);
 
     ctx.restore();
   }
@@ -686,51 +503,19 @@ export class Game {
     isNear: boolean,
     pulse01: number,
   ) {
-    // solemn door (neutral)
-    const archR = w * 0.5;
-    const archY = y + archR;
-
-    // shadow
-    ctx.globalAlpha = 0.14;
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.ellipse(x + w * 0.5, y + h + 12, w * 0.6, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // frame
-    ctx.fillStyle = "#6b4f2c";
-    ctx.fillRect(x - 6, y - 6, w + 12, h + 12);
-
-    // door body
-    ctx.fillStyle = "#a67c52";
-    ctx.fillRect(x, y + archR, w, h - archR);
-
-    // arch top
-    ctx.beginPath();
-    ctx.moveTo(x, archY);
-    ctx.arc(x + w * 0.5, archY, archR, Math.PI, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    // inner panel
-    ctx.fillStyle = "rgba(15,23,42,0.35)";
-    ctx.fillRect(x + 10, y + archR + 14, w - 20, h - archR - 28);
-
-    // knob
-    ctx.fillStyle = "#1f2937";
-    ctx.fillRect(x + w - 22, y + h * 0.58, 10, 12);
-
-    // highlight
-    if (isNear) {
-      ctx.strokeStyle = `rgba(216,192,138,${0.55 + pulse01 * 0.25})`;
-      ctx.lineWidth = 4;
-      ctx.strokeRect(x - 5.5, y - 5.5, w + 11, h + 11);
-    } else {
-      ctx.strokeStyle = "rgba(216,192,138,0.25)";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x - 5.5, y - 5.5, w + 11, h + 11);
+    void isNear;
+    void pulse01;
+    const img = this.doorImage;
+    if (img && img.complete && img.naturalWidth > 0) {
+      const prevSmoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.imageSmoothingEnabled = prevSmoothing;
+      return;
     }
+
+    ctx.fillStyle = "#8a4e0b";
+    ctx.fillRect(x, y, w, h);
   }
 
   private drawStage(
@@ -742,19 +527,29 @@ export class Game {
     isNear: boolean,
     pulse01: number,
   ) {
-    // base platform
+    const img = this.doorImage;
+    if (img && img.complete && img.naturalWidth > 0) {
+      const prevSmoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = true;
+      const cx = x + w * 0.5;
+      const cy = y + h * 0.5;
+      const drawW = 120;
+      const drawH = 180;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(img, -drawW * 0.5, -drawH * 0.5, drawW, drawH);
+      ctx.restore();
+      ctx.imageSmoothingEnabled = prevSmoothing;
+      return;
+    }
+
+    // fallback platform
     ctx.fillStyle = "rgba(0,0,0,0.12)";
     ctx.fillRect(x - 38, y + h - 24, w + 76, 30);
     ctx.fillStyle = "#4b5563";
     ctx.fillRect(x - 30, y + h - 28, w + 60, 28);
 
-    // lectern
-    ctx.fillStyle = "#1f2937";
-    ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = "rgba(255,255,255,0.10)";
-    ctx.fillRect(x + 8, y + 10, w - 16, 14);
-
-    // border
     ctx.strokeStyle = isNear
       ? `rgba(216,192,138,${0.55 + pulse01 * 0.25})`
       : "rgba(216,192,138,0.30)";
@@ -781,24 +576,35 @@ export class Game {
     ctx.translate(x, y);
     ctx.scale(flipX, 1);
 
-    // body capsule (top-down)
+    const img = this.characterImage;
+    if (img && img.complete && img.naturalWidth > 0) {
+      const prevSmoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = true;
+      const targetH = 96;
+      const scale = targetH / img.naturalHeight;
+      const drawW = img.naturalWidth * scale;
+      const drawH = img.naturalHeight * scale;
+      ctx.drawImage(img, -drawW * 0.5, -drawH * 0.5, drawW, drawH);
+      ctx.imageSmoothingEnabled = prevSmoothing;
+      ctx.restore();
+      return;
+    }
+
+    // fallback body capsule (top-down)
     const bodyL = 24;
     const bodyW = 18;
     const r = bodyW * 0.5;
 
-    // outline
     ctx.fillStyle = "rgba(15,23,42,0.35)";
     ctx.beginPath();
     ctx.roundRect(-bodyL * 0.5 - 1.5, -bodyW * 0.5 - 1.5, bodyL + 3, bodyW + 3, r + 2);
     ctx.fill();
 
-    // fill
     ctx.fillStyle = "#2563eb";
     ctx.beginPath();
     ctx.roundRect(-bodyL * 0.5, -bodyW * 0.5, bodyL, bodyW, r);
     ctx.fill();
 
-    // subtle highlight stripe
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
@@ -806,13 +612,11 @@ export class Game {
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // direction indicator ("face")
     ctx.fillStyle = "#0f172a";
     ctx.beginPath();
     ctx.arc(bodyL * 0.33, 0, 4.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // small backpack / accent
     ctx.globalAlpha = 0.8;
     ctx.fillStyle = "#1e293b";
     ctx.beginPath();
@@ -827,16 +631,16 @@ export class Game {
     const map = this.maps[this.mapId];
 
     // top bar
-    ctx.fillStyle = "rgba(255,255,255,0.66)";
-    ctx.fillRect(16, 14, Math.min(860, this.viewW - 32), 66);
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.fillRect(16, 12, Math.min(560, this.viewW - 32), 48);
 
     ctx.fillStyle = "#0f172a";
-    ctx.font = "18px system-ui";
-    ctx.fillText(map.title, 30, 40);
+    ctx.font = "16px system-ui";
+    ctx.fillText(map.title, 30, 32);
 
-    ctx.font = "14px system-ui";
+    ctx.font = "12px system-ui";
     ctx.fillStyle = "#334155";
-    ctx.fillText("Di chuyển: WASD/Phím mũi tên • Tương tác: E • Pause: Esc", 30, 62);
+    ctx.fillText("Di chuyển: WASD/Phím mũi tên • Tương tác: E • Pause: Esc", 30, 50);
 
     // interact hint
     if (this.nearest) {

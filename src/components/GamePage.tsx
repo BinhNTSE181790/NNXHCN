@@ -154,19 +154,11 @@ export function GamePage() {
       let next: SaveStateV1 = { ...save };
       next.completed = { ...next.completed, [res.quizId]: true };
 
-      if (res.quizId === "map1" || res.quizId === "map2") {
-        next.score = {
-          ...next.score,
-          sideTotalTimeMs: next.score.sideTotalTimeMs + res.totalTimeMs,
-          sideAttempts: next.score.sideAttempts + res.attempts,
-        };
-      } else {
-        next.score = {
-          ...next.score,
-          mainTotalTimeMs: next.score.mainTotalTimeMs + res.totalTimeMs,
-          mainAttempts: next.score.mainAttempts + res.attempts,
-        };
-      }
+      next.score = {
+        ...next.score,
+        totalTimeMs: next.score.totalTimeMs + res.totalTimeMs,
+        attempts: next.score.attempts + res.attempts,
+      };
 
       // close modal + advance
       setActiveQuiz(null);
@@ -174,27 +166,16 @@ export function GamePage() {
       if (res.quizId === "map1" || res.quizId === "map2") {
         gameRef.current?.advanceMap();
         next = syncSaveFromGame(next);
-
-        // report side score after finishing map2
-        if (res.quizId === "map2") {
-          await postScore({
-            kind: "side",
-            playerName: next.playerName,
-            sideTotalTimeMs: next.score.sideTotalTimeMs,
-            sideAttempts: next.score.sideAttempts,
-            at: new Date().toISOString(),
-          }, debugSkipQuiz);
-        }
       } else {
         gameRef.current?.burstCelebration();
         next = syncSaveFromGame(next);
         setEndgame(true);
 
         await postScore({
-          kind: "main",
+          kind: "score",
           playerName: next.playerName,
-          mainTotalTimeMs: next.score.mainTotalTimeMs,
-          mainAttempts: next.score.mainAttempts,
+          totalTimeMs: next.score.totalTimeMs,
+          attempts: next.score.attempts,
           at: new Date().toISOString(),
         }, debugSkipQuiz);
       }
@@ -296,6 +277,8 @@ export function GamePage() {
 
   const onShowHelp = useCallback(() => {
     setShowHelp(true);
+    setPaused(false);
+    gameRef.current?.setHardPaused(false);
   }, []);
 
   const onCloseHelp = useCallback(() => {
@@ -392,14 +375,9 @@ export function GamePage() {
             </div>
             <div className={styles.endGrid}>
               <div>
-                <div className={styles.endMuted}>Score phụ (map 1 + 2)</div>
-                <div>Thời gian: {fmtMs(save?.score.sideTotalTimeMs ?? 0)}</div>
-                <div>Lần thử: {save?.score.sideAttempts ?? 0}</div>
-              </div>
-              <div>
-                <div className={styles.endMuted}>Score chính (tổng kết)</div>
-                <div>Thời gian: {fmtMs(save?.score.mainTotalTimeMs ?? 0)}</div>
-                <div>Lần thử: {save?.score.mainAttempts ?? 0}</div>
+                <div className={styles.endMuted}>Score</div>
+                <div>Thời gian: {fmtMs(save?.score.totalTimeMs ?? 0)}</div>
+                <div>Lần thử: {save?.score.attempts ?? 0}</div>
               </div>
             </div>
 
