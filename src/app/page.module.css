@@ -24,6 +24,32 @@
   pointer-events: none;
 }
 
+.integrityBtn {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+
+.integrityBtn:hover {
+  background: rgba(37, 99, 235, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
 .endWrap {
   position: fixed;
   inset: 0;

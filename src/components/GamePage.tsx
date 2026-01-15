@@ -313,6 +313,12 @@ export function GamePage() {
 
       {debugSkipQuiz ? <div className={styles.debugBadge}>DEBUG: Skip quiz</div> : null}
 
+      {started ? (
+        <a href="/academic-integrity" className={styles.integrityBtn} title="Xem báo cáo liêm chính học thuật">
+          📋 Liêm chính học thuật
+        </a>
+      ) : null}
+
       <StartOverlay
         key={`${saveExists ? "1" : "0"}-${save?.playerName ?? ""}`}
         visible={!started}
