@@ -598,10 +598,14 @@ export class Game {
     const flipX = this.player.facing.x < 0 ? -1 : 1;
 
     // shadow
+    const shadowOffsetX = 0;
+    const shadowOffsetY = 40;
+    const shadowRadiusX = 16;
+    const shadowRadiusY = 6;
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(x, y + 14, 16, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + shadowOffsetX, y + shadowOffsetY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
 
