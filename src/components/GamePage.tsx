@@ -396,12 +396,6 @@ export function GamePage() {
                 Chơi lại từ đầu
               </button>
             </div>
-
-            {!process.env.NEXT_PUBLIC_SHEETS_ENDPOINT ? (
-              <div className={styles.endMuted}>
-                (Chưa cấu hình Google Sheet webhook: đặt env `SHEETS_ENDPOINT` (khuyến nghị) hoặc `NEXT_PUBLIC_SHEETS_ENDPOINT`.)
-              </div>
-            ) : null}
           </div>
         </div>
       ) : null}
