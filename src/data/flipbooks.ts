@@ -14,17 +14,15 @@ export type Flipbook = {
   id: FlipbookId;
   title: string;
   pages: string[];
+  embedUrl?: string;
 };
 
 export const FLIPBOOKS: Record<FlipbookId, Flipbook> = {
   "m1-trung-tam-quyen-luc": {
     id: "m1-trung-tam-quyen-luc",
     title: "Nhà nước XHCN: Quyền lực thuộc về nhân dân",
-    pages: [
-      "Nhà nước xã hội chủ nghĩa lấy Nhân dân làm chủ thể quyền lực.",
-      "Quyền lực nhà nước được tổ chức và thực thi để phục vụ lợi ích chung.",
-      "Tôn trọng và bảo đảm quyền, lợi ích hợp pháp của công dân.",
-    ],
+    pages: [],
+    embedUrl: "https://heyzine.com/flip-book/ba08748455.html",
   },
   "m1-chuc-nang": {
     id: "m1-chuc-nang",
