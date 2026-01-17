@@ -1,7 +1,60 @@
+import { google } from "googleapis";
+
 export const runtime = "nodejs";
+
+type SheetsApiConfig = {
+  spreadsheetId: string;
+  sheetName: string;
+  clientEmail: string;
+  privateKey: string;
+};
+
+const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
 function getEndpoint() {
   return process.env.SHEETS_ENDPOINT || process.env.NEXT_PUBLIC_SHEETS_ENDPOINT || "";
+}
+
+function getSheetsApiConfig(): SheetsApiConfig | null {
+  const spreadsheetId =
+    process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.SHEETS_SPREADSHEET_ID || "";
+  const sheetName = process.env.GOOGLE_SHEETS_SHEET_NAME || process.env.SHEETS_SHEET_NAME || "Scores";
+  const clientEmail =
+    process.env.GOOGLE_SHEETS_CLIENT_EMAIL || process.env.GOOGLE_SA_EMAIL || "";
+  const privateKeyRaw =
+    process.env.GOOGLE_SHEETS_PRIVATE_KEY || process.env.GOOGLE_SA_PRIVATE_KEY || "";
+
+  if (!spreadsheetId || !clientEmail || !privateKeyRaw) return null;
+
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  return { spreadsheetId, sheetName, clientEmail, privateKey };
+}
+
+async function appendRowViaSheetsApi(payload: Record<string, unknown>, config: SheetsApiConfig) {
+  const auth = new google.auth.JWT({
+    email: config.clientEmail,
+    key: config.privateKey,
+    scopes: [SHEETS_SCOPE],
+  });
+
+  const sheets = google.sheets({ version: "v4", auth });
+
+  const at = typeof payload.at === "string" && payload.at ? payload.at : new Date().toISOString();
+  const kind = typeof payload.kind === "string" && payload.kind ? payload.kind : "score";
+  const playerName = typeof payload.playerName === "string" ? payload.playerName : "";
+  const totalTimeMs =
+    typeof payload.totalTimeMs === "number" ? payload.totalTimeMs : payload.totalTimeMs ?? "";
+  const attempts = typeof payload.attempts === "number" ? payload.attempts : payload.attempts ?? "";
+
+  const row = [at, kind, playerName, totalTimeMs, attempts];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: config.spreadsheetId,
+    range: `${config.sheetName}!A:E`,
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: { values: [row] },
+  });
 }
 
 function safeRequestId() {
@@ -28,6 +81,7 @@ function redactEndpoint(endpoint: string) {
 export async function POST(req: Request) {
   const requestId = safeRequestId();
   const endpoint = getEndpoint();
+  const sheetsConfig = getSheetsApiConfig();
 
   const ct = req.headers.get("content-type") || "";
   const cl = req.headers.get("content-length") || "";
@@ -37,7 +91,11 @@ export async function POST(req: Request) {
     `[api/score][${requestId}] endpointConfigured=${Boolean(endpoint)} endpoint=${endpoint ? redactEndpoint(endpoint) : "(empty)"}`,
   );
 
-  if (!endpoint) {
+  console.log(
+    `[api/score][${requestId}] sheetsApiConfigured=${Boolean(sheetsConfig)} sheet=${sheetsConfig ? sheetsConfig.sheetName : "(none)"}`,
+  );
+
+  if (!endpoint && !sheetsConfig) {
     // Logging not configured; treat as success (best-effort).
     console.log(`[api/score][${requestId}] No endpoint configured, returning 204.`);
     return new Response(null, { status: 204, headers: { "x-request-id": requestId } });
@@ -71,6 +129,21 @@ export async function POST(req: Request) {
   }
 
   try {
+    if (sheetsConfig) {
+      const started = Date.now();
+      await appendRowViaSheetsApi(payload as Record<string, unknown>, sheetsConfig);
+      const elapsedMs = Date.now() - started;
+
+      console.log(
+        `[api/score][${requestId}] Sheets API append ok elapsedMs=${elapsedMs} sheet=${sheetsConfig.sheetName}`,
+      );
+
+      return Response.json(
+        { ok: true, provider: "sheets-api", requestId, elapsedMs },
+        { headers: { "x-request-id": requestId, "cache-control": "no-store" } },
+      );
+    }
+
     const started = Date.now();
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 12_000);
