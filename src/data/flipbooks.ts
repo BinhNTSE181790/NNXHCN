@@ -1,6 +1,5 @@
 //UI
 export type FlipbookId =
-  | "m1-trung-tam-quyen-luc"
   | "m1-chuc-nang"
   | "m1-phap-luat"
   | "m1-to-chuc"
@@ -17,12 +16,7 @@ export type Flipbook = {
 };
 
 export const FLIPBOOKS: Record<FlipbookId, Flipbook> = {
-  "m1-trung-tam-quyen-luc": {
-    id: "m1-trung-tam-quyen-luc",
-    title: "Nhà nước XHCN: Quyền lực thuộc về nhân dân",
-    pages: [],
-    embedUrl: "https://heyzine.com/flip-book/ba08748455.html",
-  },
+
   "m1-chuc-nang": {
     id: "m1-chuc-nang",
     title: "Chức năng của Nhà nước XHCN",
@@ -34,21 +28,17 @@ export const FLIPBOOKS: Record<FlipbookId, Flipbook> = {
   },
   "m1-phap-luat": {
     id: "m1-phap-luat",
-    title: "Pháp luật trong Nhà nước XHCN",
+    title: "Nguồn gốc chủ nghĩa xã hội",
     pages: [
-      "Pháp luật là công cụ quản lý xã hội quan trọng.",
-      "Thượng tôn pháp luật giúp bảo vệ quyền con người, quyền công dân.",
-      "Mọi chủ thể đều phải tuân thủ pháp luật.",
     ],
+    embedUrl: "https://heyzine.com/flip-book/98e25a41ec.html"
   },
   "m1-to-chuc": {
     id: "m1-to-chuc",
-    title: "Tổ chức bộ máy nhà nước",
+    title: "Mối quan hệ dân chủ xã hội chủ nghĩa và nhà nước xã hội chủ nghĩa",
     pages: [
-      "Bộ máy nhà nước được tổ chức theo Hiến pháp và pháp luật.",
-      "Phân công, phối hợp và kiểm soát trong thực hiện quyền lực.",
-      "Hướng tới hiệu lực, hiệu quả và phục vụ nhân dân.",
     ],
+    embedUrl: "https://heyzine.com/flip-book/8481ae8b11.html"
   },
 
   "m2-dan-chu": {
