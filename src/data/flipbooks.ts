@@ -7,7 +7,6 @@ export type FlipbookId =
   | "m2-dan-chu"
   | "m2-phap-quyen"
   | "m2-phat-huy"
-  | "m2-tham-gia"
   | "m3-tong-ket";
 
 export type Flipbook = {
@@ -54,41 +53,25 @@ export const FLIPBOOKS: Record<FlipbookId, Flipbook> = {
 
   "m2-dan-chu": {
     id: "m2-dan-chu",
-    title: "Dân chủ xã hội chủ nghĩa",
+    title: "Dân chủ xã hội chủ nghĩa ở Việt Nam",
     pages: [
-      "Dân chủ XHCN là bản chất của chế độ XHCN: Nhân dân làm chủ.",
-      "Thực hiện bằng dân chủ trực tiếp và dân chủ đại diện.",
-      "Gắn với kỷ cương, pháp luật và trách nhiệm công dân.",
     ],
+    embedUrl: "https://heyzine.com/flip-book/72b412ea20.html"
   },
   "m2-phap-quyen": {
     id: "m2-phap-quyen",
     title: "Nhà nước pháp quyền XHCN ở Việt Nam",
     pages: [
-      "Nhà nước quản lý xã hội bằng Hiến pháp và pháp luật.",
-      "Tôn trọng, bảo vệ và bảo đảm quyền con người, quyền công dân.",
-      "Đề cao công khai, minh bạch và trách nhiệm giải trình.",
     ],
+    embedUrl: "https://heyzine.com/flip-book/78e19834d2.html"
   },
   "m2-phat-huy": {
     id: "m2-phat-huy",
-    title: "Phát huy dân chủ XHCN",
+    title: "Phát huy và xây dựng nhà nước pháp quyền XHCN ở Việt Nam",
     pages: [
-      "Kiểm soát quyền lực để phòng chống lạm quyền, tham nhũng.",
-      "Cơ chế giám sát, phản biện xã hội góp phần nâng cao chất lượng quản trị.",
-      "Mục tiêu: quyền lực được sử dụng đúng mục đích, vì nhân dân.",
     ],
+    embedUrl: "https://heyzine.com/flip-book/a742a2e1b3.html"
   },
-  "m2-tham-gia": {
-    id: "m2-tham-gia",
-    title: "Nhân dân tham gia quản lý",
-    pages: [
-      "Tham gia qua bầu cử, góp ý, giám sát và phản biện.",
-      "Tham gia qua tổ chức chính trị - xã hội và các kênh hợp pháp.",
-      "Tăng chất lượng quyết sách và tạo đồng thuận xã hội.",
-    ],
-  },
-
   "m3-tong-ket": {
     id: "m3-tong-ket",
     title: "Tổng kết",
