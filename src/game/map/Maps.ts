@@ -102,10 +102,8 @@ export function buildMaps(): Record<MapId, MapDef> {
 
   // Map 1 exhibits
   const m1Exhibits: Interactable[] = [
-    exhibit("m1-e1", 130, 350, "Quyền lực thuộc về nhân dân", "m1-trung-tam-quyen-luc"),
-    exhibit("m1-e2", 2130, 350, "Chức năng nhà nước", "m1-chuc-nang"),
-    exhibit("m1-e3", 580, 750, "Pháp luật và thượng tôn", "m1-phap-luat"),
-    exhibit("m1-e4", 1700, 750, "Tổ chức bộ máy", "m1-to-chuc"),
+    exhibit("m1-e3", 580, 750, "Dân chủ xã hội chủ nghĩa ở Việt Nam", "m1-phap-luat"),
+    exhibit("m1-e4", 1700, 750, "Mối quan hệ dân chủ xã hội chủ nghĩa và nhà nước xã hội chủ nghĩa", "m1-to-chuc"),
   ];
   for (const it of m1Exhibits) addObstacle(map1Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
 
@@ -116,7 +114,7 @@ export function buildMaps(): Record<MapId, MapDef> {
   // Map 2 exhibits
   const m2Exhibits: Interactable[] = [
     exhibit("m2-e1", 470, 450, "Dân chủ XHCN ở Việt Nam", "m2-dan-chu"),
-    exhibit("m2-e2", 1180, 450, "Nhà nước pháp quyền XHCN", "m2-phap-quyen"),
+    exhibit("m2-e2", 1180, 450, "Nhà nước pháp quyền XHCN ở Việt Nam", "m2-phap-quyen"),
     exhibit("m2-e3", 1920, 450, "Phát huy dân chủ XHCN", "m2-phat-huy"),
   ];
   for (const it of m2Exhibits) addObstacle(map2Obstacles, pedestalObstacle(it.rect.x, it.rect.y));
